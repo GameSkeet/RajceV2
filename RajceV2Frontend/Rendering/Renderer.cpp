@@ -35,15 +35,18 @@ ID3D11RenderTargetView* RendererVar(d3d_rendertarget, nullptr);
 #pragma endregion
 #pragma region Functions
 
-__forceinline void InitImGui() {
-	using namespace RajceV2::Rendering;
-	using namespace imelems;
+__forceinline void InitImGuiContext() {
+	ImGui::CreateContext();
 
 	ImGuiIO& io = ImGui::GetIO();
 	// IO here
 	{
-		io.ConfigFlags = ImGuiConfigFlags_NoMouseCursorChange;
+		io.ConfigFlags = ImGuiConfigFlags_NoMouseCursorChange | ImGuiConfigFlags_IsSRGB;
 	}
+}
+__forceinline void InitImGui() {
+	using namespace RajceV2::Rendering;
+	using namespace imelems;
 
 	ImGuiStyle& style = ImGui::GetStyle();
 	// Styles here
@@ -98,6 +101,9 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* swap, UINT sync, UINT flags) {
 			oWndProc = (WNDPROC)SetWindowLongPtr(window, GWLP_WNDPROC, (LONG_PTR)hkWndProc);
 
 			RajceV2::Menu::Init();
+#ifdef PRIVATE_CODE_INCLUDED
+			RajceV2::PCode::Init();
+#endif
 			InitImGui();
 
 			d3d_swap = swap;
@@ -126,6 +132,8 @@ HRESULT __stdcall hkPresent(IDXGISwapChain* swap, UINT sync, UINT flags) {
 
 HRESULT __stdcall hkResizeBuffers(IDXGISwapChain* swap, UINT buffCnt, UINT w, UINT h, DXGI_FORMAT format, UINT flags) {
 	using namespace RajceV2::Rendering;
+
+	format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
 	if (d3d_rendertarget) {
 		d3d_context->OMSetRenderTargets(0, 0, 0);
@@ -158,7 +166,7 @@ HRESULT __stdcall hkResizeBuffers(IDXGISwapChain* swap, UINT buffCnt, UINT w, UI
 bool RendererFunc(InitRenderer, ()) {
 	kiero::Status::Enum status = kiero::init(kiero::RenderType::D3D11);
 	if (status == kiero::Status::Success || status == kiero::Status::AlreadyInitializedError) {
-		ImGui::CreateContext();
+		InitImGuiContext();
 		return true;
 	}
 

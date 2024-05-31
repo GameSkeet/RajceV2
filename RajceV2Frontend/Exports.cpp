@@ -21,6 +21,7 @@ void Destroy() {
 	PCode::Destroy(); // This just frees stuff created in the private code section
 #endif
 
+	UIBuilder::Destroy();
 	KeybindManager::DestroyKeybinds();
 }
 
@@ -44,8 +45,8 @@ void SetMenuKeybind(Keybind* keybind) {
 }
 
 // UI builder
-uint32_t BeginTab(const wchar_t* name) {
-	return UIBuilder::BeginTab(name);
+uint32_t BeginTab(const wchar_t* name, ID3D11Resource* icon) {
+	return UIBuilder::BeginTab(name, icon);
 }
 void EndTab() {
 	UIBuilder::EndTab();
@@ -63,14 +64,15 @@ bool* GetKeybindListVisiblePtr() {
 void LoadFont(uint32_t type, byte* bytes, int len) {
 	ImGui::LoadFont((UIFonts)type, bytes, len);
 }
-ID3D11ShaderResourceView* LoadUnityTexture(ID3D11Resource* tex) {
+void LoadUnityTexture(ID3D11Resource* tex, ID3D11ShaderResourceView** res) {
 	// People that want textures/images inside the menu that come from unity
 	// will need to add their own implementation.
 	// This is a protection against pasters, cause it will work on every single unity version.
 	// also this isn't hard to implement if you know D11 basics
 #ifdef PRIVATE_CODE_INCLUDED
-	return PCode::LoadUnityTexture(tex);
+	PCode::LoadUnityTexture(tex, res);
 #else
-	return nullptr;
+	if (res)
+		*res = nullptr;
 #endif
 }

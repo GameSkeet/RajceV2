@@ -15,7 +15,7 @@ extern "C" {
 	__declspec(dllexport) void SetMenuKeybind(Keybind* keybind);
 
 	// UI builder
-	__declspec(dllexport) uint32_t BeginTab(const wchar_t* name);
+	__declspec(dllexport) uint32_t BeginTab(const wchar_t* name, ID3D11Resource* icon);
 	__declspec(dllexport) void EndTab();
 	__declspec(dllexport) void RemoveTab(uint32_t tab_id);
 
@@ -25,5 +25,5 @@ extern "C" {
 	// Misc stuff
 	__declspec(dllexport) void LoadFont(uint32_t type, byte* buff, int len);
 	// The resulting resource should be released by the user
-	__declspec(dllexport) ID3D11ShaderResourceView* LoadUnityTexture(ID3D11Resource* tex);
+	__declspec(dllexport) void LoadUnityTexture(ID3D11Resource* tex, ID3D11ShaderResourceView** res);
 }

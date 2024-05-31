@@ -20,12 +20,15 @@ static bool m_bInvokedInit = false;
 static ID3D11Resource* iconResource = nullptr;
 static ID3D11ShaderResourceView* menuIcon = nullptr;
 static Keybind* menuKey = nullptr;
+
+static uint32_t m_iActiveTab = 0;
+
 static const DWORD windowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar;
 
 #pragma endregion
 
 void MenuFunc(Init, ()) {
-	menuIcon = LoadUnityTexture(iconResource);
+	LoadUnityTexture(iconResource, &menuIcon);
 
 	m_bInvokedInit = true;
 	iconResource = nullptr;
@@ -161,10 +164,10 @@ void MenuFunc(Render, ()) {
 			ImColor sCol = IM_COL32(0, 255, 0, 255); 
 			ImColor eCol = IM_COL32(255, 0, 0, 255); 
 			
-			float imageSize = min(logoSize.x, logoSize.y);
+			float imageSize = menuIcon == nullptr ? 0 : min(logoSize.x, logoSize.y);
 			ImVec2 txtSize = ImGui::CalcTextSize("RajceV2");
 			ImVec2 curPos = logoPos + ImVec2(logoSize.x / 2 - (txtSize.x + imageSize) / 2, 0);
-			curPos.x -= 2;
+			curPos.x -= 2; // Comment this if the off-centered text is making you crazy (this is here to make logo with icon centered, cause am a clown and didn't remove transparent borders)
 
 			// Need a better way to flip images than this
 			draw->AddImage(menuIcon, pos + curPos, pos + curPos + ImVec2(imageSize, imageSize), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
@@ -197,13 +200,87 @@ void MenuFunc(Render, ()) {
 		{
 			window->DC.CursorPos = pos + tabsPos;
 
-			ImGui::BeginChild("##Tabs", tabsSize, true);
+			ImGui::BeginChild("##Tabs", tabsSize, false, ImGuiWindowFlags_NoScrollbar);
 			{
 				ImGuiWindow* cwindow = ImGui::GetCurrentWindow();
 				ImDrawList* cdraw = cwindow->DrawList;
-				ImVec2* cpos = &cwindow->DC.CursorPos;
+				ImVec2 cpos = cwindow->DC.CursorPos;
 
+				ImGui::PushFont(io.Fonts->Fonts[UIFonts_TabsText]);
 
+				// Draw tabs
+				{
+					size_t tcnt = 0;
+					UIBuilder::TabEntry** tabs = UIBuilder::GetTabs(&tcnt);
+
+					float tabWidth = UIBuilder::GetWidestTab();
+					ImVec2 tPos = cpos + ImVec2(0, 0); // This is here just if some one wants to add a lil offset
+					ImVec2 tabSize = ImVec2(tabWidth + Tabs::PaddingSides * 2, MenuHeaderHeight);
+					ImColor inactiveCol = ImGui::ColorConvertFloat4ToU32(Window::WindowBg);
+
+					for (size_t i = 0; i < tcnt; i++) {
+						UIBuilder::TabEntry* tab = tabs[i];
+						ImGuiID tabId = cwindow->GetID(tab->name);
+
+						// Tab selection
+						const ImRect bb(tPos, tPos + tabSize); 
+						if (!ImGui::ItemAdd(bb, tabId))
+							continue;
+
+						bool hovered, held; 
+						bool pressed = ImGui::ButtonBehavior(bb, tabId, &hovered, &held, ImGuiButtonFlags_MouseButtonLeft);
+						if (pressed || m_iActiveTab == 0)
+							m_iActiveTab = tab->id;
+
+						ImColor col = inactiveCol;
+						if (tab->id == m_iActiveTab)
+							col = Tabs::TabActiveColor;
+						else {
+							if (hovered)
+								col = Tabs::TabHoveredColor;
+						}
+
+						cdraw->AddRectFilled(
+							tPos,
+							tPos + tabSize,
+							col,
+							Tabs::Rounding,
+							ImDrawFlags_RoundCornersTop
+						);
+						
+						ImVec2 offset = ImVec2(); // Doing this so we dont directly modify the tPos value
+						if (tab->icon) {
+							offset.x += UIFonts_TabsText_Size;
+							offset.x += Tabs::PaddingTextLeft;
+
+							cdraw->AddImage(
+								tab->icon,
+								tPos + ImVec2(Tabs::PaddingSides, tabSize.y / 2 - UIFonts_TabsText_Size / 2),
+								tPos + ImVec2(Tabs::PaddingSides + UIFonts_TabsText_Size, (tabSize.y / 2 - UIFonts_TabsText_Size / 2) + UIFonts_TabsText_Size),
+								ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f)
+							);
+						}
+
+						ImVec2 tTextPos = tPos + ImVec2(Tabs::PaddingSides, tabSize.y / 2 - tab->nameSize.y / 2) + offset;
+						ImGui::RenderTextClipped(
+							tTextPos,
+							tTextPos + tab->nameSize,
+							tab->name,
+							nullptr,
+							&tab->nameSize
+						);
+
+						tPos.x += tabSize.x;
+					}
+				}
+
+				// Draw scroll arrows here
+				{
+					//TODO: draw them, also check if there is more content to left and right
+					// and based on that draw arrows to the sides
+				}
+
+				ImGui::PopFont();
 			}
 			ImGui::EndChild();
 		}
@@ -224,7 +301,7 @@ void MenuFunc(SetIcon, (ID3D11Resource* icon)) {
 		return;
 	}
 
-	menuIcon = LoadUnityTexture(icon);
+	LoadUnityTexture(icon, &menuIcon);
 }
 void MenuFunc(SetKeybind, (Keybind* key)) {
 	menuKey = key;

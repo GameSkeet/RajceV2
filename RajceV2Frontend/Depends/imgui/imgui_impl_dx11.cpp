@@ -527,6 +527,8 @@ bool    ImGui_ImplDX11_CreateDeviceObjects()
 void    ImGui_ImplDX11_InvalidateDeviceObjects()
 {
     ImGui_ImplDX11_Data* bd = ImGui_ImplDX11_GetBackendData();
+    if (!bd)
+        return;
     if (!bd->pd3dDevice)
         return;
 

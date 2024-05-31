@@ -19,11 +19,13 @@ namespace RajceV2Cheat
 
         public static IntPtr MenuKey { get; private set; } = IntPtr.Zero;
 
+        private static int cntr = 0;
         private static void AddTab(TabBase tab)
         {
-            tabToId[tab.Name] = FrontendPipe.BeginTab(tab.Name);
+            cntr++;
+            tabToId[tab.Name] = FrontendPipe.BeginTab(tab.Name + cntr + "##" + cntr);
             {
-
+                
             }
             FrontendPipe.EndTab();
         }
@@ -41,16 +43,19 @@ namespace RajceV2Cheat
 
             MenuKey = Keybinds.CreateKey("Menu", UnityEngine.KeyCode.Insert, KeybindType.Toggle, true);
 
-            AddTab(new CombatTab());
-
             byte[] fontData = Utils.GetResource("segoeuib.ttf");
             byte[] fontData1 = Utils.GetResource("seguibl.ttf");
             IntPtr fontNormal = Marshal.UnsafeAddrOfPinnedArrayElement(fontData, 0);
             IntPtr fontBold = Marshal.UnsafeAddrOfPinnedArrayElement(fontData1, 0);
 
             FrontendPipe.LoadFont(UIFonts.Text, fontNormal, fontData.Length);
-            FrontendPipe.LoadFont(UIFonts.BiggerText, fontNormal, fontData.Length);
+            FrontendPipe.LoadFont(UIFonts.SectionText, fontNormal, fontData.Length);
+            FrontendPipe.LoadFont(UIFonts.TabsText, fontNormal, fontData.Length);
             FrontendPipe.LoadFont(UIFonts.Header, fontBold, fontData1.Length);
+
+            AddTab(new CombatTab());
+            AddTab(new CombatTab());
+            AddTab(new CombatTab());
 
             FrontendPipe.SetMenuIcon(icon.GetNativeTexturePtr());
             // Nothing will render until the key is set

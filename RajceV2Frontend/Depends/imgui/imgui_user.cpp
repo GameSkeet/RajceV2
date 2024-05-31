@@ -1,4 +1,5 @@
 #include "../../Source.hpp"
+#include "imgui_impl_dx11.h"
 
 void ImGui::ConvertStrToUTF8(char** out_buf, const wchar_t* str) {
 	ImWchar* _str = (ImWchar*)str;
@@ -15,18 +16,21 @@ void ImGui::LoadFont(UIFonts type, byte* buff, int len) {
 	cfg.FontDataOwnedByAtlas = false;
 	
 	ImGuiIO& io = ImGui::GetIO();
-	float size = 18;
+	float size = UIFonts_Text_Size;
 	switch (type)
 	{
-		case UIFonts_BiggerText:
-			size = 28;
+		case UIFonts_SectionText:
+			size = UIFonts_SectionText_Size;
+			break;
+		case UIFonts_TabsText:
+			size = UIFonts_TabsText_Size;
 			break;
 		case UIFonts_Header:
-			size = 36;
-			break;
-		case UIFonts_Icons:
+			size = UIFonts_Header_Size;
 			break;
 	}
 
 	io.Fonts->Fonts[type] = io.Fonts->AddFontFromMemoryTTF(buff, len, size, &cfg, io.Fonts->GetGlyphRangesCyrillic());
+	io.Fonts->Build();
+	ImGui_ImplDX11_InvalidateDeviceObjects();
 }
