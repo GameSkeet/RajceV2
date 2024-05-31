@@ -14,18 +14,33 @@ namespace imelems {
 		static ImVec4 TitleInactive = RGBA_TO_IMVEC(10, 120, 20, 220);
 		static ImVec4 TitleActive = RGBA_TO_IMVEC(20, 170, 20, 255);
 
+		static ImColor TextColor = IM_COL32(255, 255, 255, 255);
+
 		static ImColor DividerColor = IM_COL32(15, 15, 15, 255);
 	}
 
 	namespace Tabs {
 		static float Rounding = 5.f;
 		static float PaddingSides = 5.f;
-		static float PaddingTextLeft = 5.f;
+		static float PaddingTextLeft = 5.f; // The padding between icon and text
 
 		// Inactive color is WindowBg
-		static ImColor TabHoveredColor = IM_COL32(100, 30, 30, 255);
+		static ImColor TabHoveredColor = IM_COL32(120, 30, 30, 255);
 		static ImColor TabActiveColor = IM_COL32(160, 40, 40, 255);
+	}
 
-		static ImColor TabTextColor = IM_COL32(255, 255, 255, 255);
+	namespace Sections {
+		// Selector shouldn't be used when inverting sections with tabs
+
+		static float Rounding = 5.f;
+		static float PaddingSides = 5.f;
+		static float PaddingFromSelector = 10.f;
+		static float PaddingTextLeft = 5.f; // The padding between icon and text
+
+		static float SelectorWidth = 5.f;
+
+		static ImColor SecHoveredColor;
+		static ImColor SecActiveColor;
+		static ImColor SecSelectorColor; // The rectangle on the selected tab
 	}
 }

@@ -55,6 +55,16 @@ void RemoveTab(uint32_t id) {
 	UIBuilder::RemoveTab(id);
 }
 
+uint32_t BeginSection(const wchar_t* name, ID3D11Resource* icon) {
+	return UIBuilder::BeginSection(name, icon);
+}
+void EndSection() {
+	UIBuilder::EndSection();
+}
+void RemoveSection(uint32_t id) {
+	UIBuilder::RemoveSection(id);
+}
+
 // Keybind list
 bool* GetKeybindListVisiblePtr() {
 	return &KeybindList::IsVisible;

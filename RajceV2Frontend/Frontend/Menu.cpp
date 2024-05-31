@@ -71,10 +71,9 @@ void MenuFunc(Render, ()) {
 		ImDrawList* fdraw = ImGui::GetForegroundDrawList();
 		ImVec2 pos = window->Pos;
 		
+		ImColor dbgCol = IM_COL32(0, 0, 255, 255);
 		// Debug boxes
 		{
-			ImColor dbgCol = IM_COL32(0, 0, 255, 255);
-
 			// Logo box
 			{
 				/*fdraw->AddRect(
@@ -248,23 +247,22 @@ void MenuFunc(Render, ()) {
 							ImDrawFlags_RoundCornersTop
 						);
 						
-						ImVec2 offset = ImVec2(); // Doing this so we dont directly modify the tPos value
+						ImVec2 tcPos = tPos + (tabSize / 2 - ImVec2((tab->icon == nullptr ? 0 : UIFonts_TabsText_Size + Tabs::PaddingTextLeft) + tab->nameSize.x, tab->nameSize.y) / 2);
 						if (tab->icon) {
-							offset.x += UIFonts_TabsText_Size;
-							offset.x += Tabs::PaddingTextLeft;
-
 							cdraw->AddImage(
 								tab->icon,
-								tPos + ImVec2(Tabs::PaddingSides, tabSize.y / 2 - UIFonts_TabsText_Size / 2),
-								tPos + ImVec2(Tabs::PaddingSides + UIFonts_TabsText_Size, (tabSize.y / 2 - UIFonts_TabsText_Size / 2) + UIFonts_TabsText_Size),
+								tcPos,
+								tcPos + ImVec2(UIFonts_TabsText_Size, UIFonts_TabsText_Size),
 								ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f)
 							);
+
+							tcPos.x += UIFonts_TabsText_Size;
+							tcPos.x += Tabs::PaddingTextLeft;
 						}
 
-						ImVec2 tTextPos = tPos + ImVec2(Tabs::PaddingSides, tabSize.y / 2 - tab->nameSize.y / 2) + offset;
 						ImGui::RenderTextClipped(
-							tTextPos,
-							tTextPos + tab->nameSize,
+							tcPos,
+							tcPos + tab->nameSize,
 							tab->name,
 							nullptr,
 							&tab->nameSize
@@ -278,7 +276,26 @@ void MenuFunc(Render, ()) {
 				{
 					//TODO: draw them, also check if there is more content to left and right
 					// and based on that draw arrows to the sides
+
+
 				}
+
+				ImGui::PopFont();
+			}
+			ImGui::EndChild();
+		}
+
+		// Sections
+		{
+			window->DC.CursorPos = pos + sectionsPos;
+
+			ImGui::BeginChild("##Sections", sectionsSize, false);
+			{
+				ImGuiWindow* cwindow = ImGui::GetCurrentWindow();
+				ImDrawList* cdraw = cwindow->DrawList;
+				ImVec2 cpos = cwindow->DC.CursorPos;
+
+				ImGui::PushFont(io.Fonts->Fonts[UIFonts_SectionText]);
 
 				ImGui::PopFont();
 			}

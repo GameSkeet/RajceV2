@@ -11,19 +11,22 @@ using namespace RajceV2;
 #pragma region Variables
 
 static uint32_t m_iTabCntr = 1;
+static UIBuilder::SectionEntry* m_kCurrSection = nullptr;
+
 static uint32_t m_iCurrTab = 0; // 0 means there is no tab selected
 
 static float m_fWidestTab = 0.f;
+static float m_fWidestSection = 0.f;
 
 static mapType tabs;
 
 #pragma endregion
 #pragma region Functions
 
-static ImVec2 CalcTextSize(const char* text) {
+static ImVec2 CalcTextSize(const char* text, UIFonts fontt) {
 	const char* text_end = ImGui::FindRenderedTextEnd(text);
 
-	ImFont* font = ImGui::GetIO().Fonts->Fonts[UIFonts_TabsText];
+	ImFont* font = ImGui::GetIO().Fonts->Fonts[fontt];
 	return font->CalcTextSizeA(font->FontSize, FLT_MAX, -1, text, text_end, 0);
 }
 static void DestroySection(UIBuilder::SectionEntry* sec) {
@@ -55,7 +58,7 @@ uint32_t UIBFunc(BeginTab, (const wchar_t* name, ID3D11Resource* icon)) {
 
 	ImGui::ConvertStrToUTF8(&tab->name, name);
 	LoadUnityTexture(icon, &tab->icon);
-	tab->nameSize = CalcTextSize(tab->name);
+	tab->nameSize = CalcTextSize(tab->name, UIFonts_TabsText);
 	tab->id = tabId;
 
 	float width = tab->nameSize.x;
@@ -82,6 +85,42 @@ void UIBFunc(RemoveTab, (uint32_t id)) {
 
 	DestroyTab(tabs[id]);
 	tabs.erase(id);
+}
+
+uint32_t UIBFunc(BeginSection, (const wchar_t* name, ID3D11Resource* icon)) {
+	if (m_iCurrTab == 0)
+		return 0;
+	if (!tabs.contains(m_iCurrTab)) // This should not really be possible if someone isn't a complete dumbass
+		return 0;
+
+	TabEntry* tab = tabs[m_iCurrTab];
+	SectionEntry* sec = new SectionEntry();
+	m_kCurrSection = sec;
+
+	tab->sections.push_back(sec);
+	uint32_t secId = sec->id = tab->sections.size();
+	ImGuiIO& io = ImGui::GetIO();
+
+	ImGui::ConvertStrToUTF8(&sec->name, name);
+	LoadUnityTexture(icon, &sec->icon);
+	sec->nameSize = CalcTextSize(sec->name, UIFonts_SectionText);
+
+	float width = sec->nameSize.x;
+	if (sec->icon) {
+		width += UIFonts_SectionText_Size;
+		width += imelems::Sections::PaddingTextLeft;
+	}
+
+	if (m_fWidestSection < width)
+		m_fWidestSection = width;
+
+	return secId;
+}
+void UIBFunc(EndSection, ()) {
+	m_kCurrSection = nullptr;
+}
+void UIBFunc(RemoveSection, (uint32_t id)) {
+
 }
 
 float UIBFunc(GetWidestTab, ()) {
