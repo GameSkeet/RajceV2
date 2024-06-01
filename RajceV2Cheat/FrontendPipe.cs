@@ -14,7 +14,6 @@ namespace RajceV2Cheat
     {
         Text,
         SectionText,
-        TabsText,
         Header,
     };
 
@@ -58,11 +57,14 @@ namespace RajceV2Cheat
         #region UI builder
 
         [UnmanagedFunctionPointer(CALL_CONV)]
-        private delegate uint BeginTabDelegate(IntPtr name, IntPtr icon);
+        private delegate uint BeginTabDelegate(IntPtr name);
         [UnmanagedFunctionPointer(CALL_CONV)]
         public delegate void EndTabDelegate();
         [UnmanagedFunctionPointer(CALL_CONV)]
         public delegate void RemoveTabDelegate(uint id);
+
+        private delegate void BeginSectionDelegate(IntPtr name);
+        public delegate void EndSectionDelegate();
 
         #endregion
         #region Keybind list
@@ -88,6 +90,8 @@ namespace RajceV2Cheat
 
         public static EndTabDelegate EndTab => GetExport<EndTabDelegate>("EndTab");
         public static RemoveTabDelegate RemoveTab => GetExport<RemoveTabDelegate>("RemoveTab");
+
+        public static EndSectionDelegate EndSection => GetExport<EndSectionDelegate>("EndSection");
 
         public static LoadFontDelegate LoadFont => GetExport<LoadFontDelegate>("LoadFont");
 
@@ -189,11 +193,17 @@ namespace RajceV2Cheat
         #endregion
         #region UI builder
 
-        public static uint BeginTab(string name, UnityEngine.Texture tex = null)
+        public static uint BeginTab(string name)
         {
             BeginTabDelegate begin = GetExport<BeginTabDelegate>("BeginTab");
 
-            return begin(Marshal.StringToHGlobalUni(name), tex == null ? IntPtr.Zero : tex.GetNativeTexturePtr());
+            return begin(Marshal.StringToHGlobalUni(name));
+        }
+        public static void BeginSection(string name)
+        {
+            BeginSectionDelegate begin = GetExport<BeginSectionDelegate>("BeginSection");
+
+            begin(Marshal.StringToHGlobalUni(name));
         }
 
         #endregion

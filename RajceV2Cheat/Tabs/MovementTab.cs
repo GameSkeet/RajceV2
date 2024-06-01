@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace RajceV2Cheat.Tabs
 {
-    internal class CombatTab : TabBase
+    internal class MovementTab : TabBase
     {
-        public override string Name { get; protected set; } = "Combat";
+        public override string Name { get; protected set; } = "Movement";
 
         private static void DoMainSection()
         {

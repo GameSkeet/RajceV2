@@ -5,7 +5,6 @@ namespace RajceV2 {
 		struct SectionEntry {
 		public:
 			char* name;
-			ID3D11ShaderResourceView* icon;
 			
 			uint32_t id;
 			ImVec2 nameSize;
@@ -13,7 +12,6 @@ namespace RajceV2 {
 		struct TabEntry {
 		public:
 			char* name;
-			ID3D11ShaderResourceView* icon;
 
 			uint32_t id;
 			ImVec2 nameSize;
@@ -22,13 +20,12 @@ namespace RajceV2 {
 			std::vector<SectionEntry*> sections;
 		};
 
-		uint32_t BeginTab(const wchar_t* name, ID3D11Resource* icon);
+		uint32_t BeginTab(const wchar_t* name);
 		void EndTab();
 		void RemoveTab(uint32_t id);
 
-		uint32_t BeginSection(const wchar_t* name, ID3D11Resource* icon);
+		uint32_t BeginSection(const wchar_t* name);
 		void EndSection();
-		void RemoveSection(uint32_t id);
 
 		// Internal functions
 		float GetWidestTab();

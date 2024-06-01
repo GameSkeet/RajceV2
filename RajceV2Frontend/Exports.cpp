@@ -45,8 +45,8 @@ void SetMenuKeybind(Keybind* keybind) {
 }
 
 // UI builder
-uint32_t BeginTab(const wchar_t* name, ID3D11Resource* icon) {
-	return UIBuilder::BeginTab(name, icon);
+uint32_t BeginTab(const wchar_t* name) {
+	return UIBuilder::BeginTab(name);
 }
 void EndTab() {
 	UIBuilder::EndTab();
@@ -55,14 +55,11 @@ void RemoveTab(uint32_t id) {
 	UIBuilder::RemoveTab(id);
 }
 
-uint32_t BeginSection(const wchar_t* name, ID3D11Resource* icon) {
-	return UIBuilder::BeginSection(name, icon);
+void BeginSection(const wchar_t* name) {
+	UIBuilder::BeginSection(name);
 }
 void EndSection() {
 	UIBuilder::EndSection();
-}
-void RemoveSection(uint32_t id) {
-	UIBuilder::RemoveSection(id);
 }
 
 // Keybind list

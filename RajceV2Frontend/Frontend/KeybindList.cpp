@@ -101,6 +101,7 @@ void KListFunc(Render, ()) {
 	if (isMenuClosed)
 		style.Alpha = 0.75f;
 	
+	ImGui::PushStyleColor(ImGuiCol_WindowBg, imelems::Tabs::TabActiveColor.Value);
 	ImGui::SetNextWindowSize(wndSize + ImVec2(PADDING_X * 2, 0) + ImVec2(style.WindowBorderSize * 2, style.WindowBorderSize + titleBarHeight));
 	ImGui::Begin("Keybinds", nullptr, flags);
 	{
@@ -142,6 +143,7 @@ void KListFunc(Render, ()) {
 		}
 		ImGui::EndGroup();
 	}
+	ImGui::PopStyleColor();
 	ImGui::End();
 
 	style.Alpha = old_alpha;

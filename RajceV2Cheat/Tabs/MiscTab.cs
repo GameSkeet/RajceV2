@@ -6,11 +6,15 @@ using System.Threading.Tasks;
 
 namespace RajceV2Cheat.Tabs
 {
-    internal class CombatTab : TabBase
+    internal class MiscTab : TabBase
     {
-        public override string Name { get; protected set; } = "Combat";
+        public override string Name { get; protected set; } = "Misc";
 
         private static void DoMainSection()
+        {
+
+        }
+        private static void DoHitmarkersSection()
         {
 
         }
@@ -18,6 +22,7 @@ namespace RajceV2Cheat.Tabs
         protected override void AddSections()
         {
             Sections.Add("Main", DoMainSection);
+            Sections.Add("Hitmarkers", DoHitmarkersSection);
         }
     }
 }

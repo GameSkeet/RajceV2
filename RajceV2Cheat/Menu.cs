@@ -19,13 +19,16 @@ namespace RajceV2Cheat
 
         public static IntPtr MenuKey { get; private set; } = IntPtr.Zero;
 
-        private static int cntr = 0;
         private static void AddTab(TabBase tab)
         {
-            cntr++;
-            tabToId[tab.Name] = FrontendPipe.BeginTab(tab.Name + cntr + "##" + cntr);
+            tabToId[tab.Name] = FrontendPipe.BeginTab(tab.Name);
             {
-                
+                foreach (KeyValuePair<string, TabBase.DrawSectionDelegate> kvp in tab.Sections)
+                {
+                    FrontendPipe.BeginSection(kvp.Key);
+                    kvp.Value(); // Adds the section things
+                    FrontendPipe.EndSection();
+                }
             }
             FrontendPipe.EndTab();
         }
@@ -50,12 +53,16 @@ namespace RajceV2Cheat
 
             FrontendPipe.LoadFont(UIFonts.Text, fontNormal, fontData.Length);
             FrontendPipe.LoadFont(UIFonts.SectionText, fontNormal, fontData.Length);
-            FrontendPipe.LoadFont(UIFonts.TabsText, fontNormal, fontData.Length);
             FrontendPipe.LoadFont(UIFonts.Header, fontBold, fontData1.Length);
 
             AddTab(new CombatTab());
-            AddTab(new CombatTab());
-            AddTab(new CombatTab());
+            AddTab(new VisualsTab());
+            AddTab(new MovementTab());
+            AddTab(new MiscTab());
+            AddTab(new SettingsTab());
+#if DEBUG
+            AddTab(new DebugTab());
+#endif
 
             FrontendPipe.SetMenuIcon(icon.GetNativeTexturePtr());
             // Nothing will render until the key is set

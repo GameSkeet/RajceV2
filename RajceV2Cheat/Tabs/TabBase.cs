@@ -8,7 +8,13 @@ namespace RajceV2Cheat.Tabs
 {
     internal abstract class TabBase
     {
-        public abstract string Name { get; protected set; }
+        public delegate void DrawSectionDelegate();
 
+        public abstract string Name { get; protected set; }
+        public Dictionary<string, DrawSectionDelegate> Sections { get; protected set; } = new Dictionary<string, DrawSectionDelegate>();
+
+        protected abstract void AddSections();
+
+        protected TabBase() => AddSections();
     }
 }

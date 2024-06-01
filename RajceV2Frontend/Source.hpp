@@ -15,8 +15,8 @@
 #include "Depends/imgui/imconfig.h"
 #include "Depends/imgui/imgui.h"
 #include "Depends/imgui/imgui_internal.h"
-#include "Depends/imgui/imgui_settings.h" // This contains colors and stuff
 #include "Depends/imgui/imgui_user.h" // Has custom imgui functions
+#include "Depends/imgui/imgui_settings.h" // This contains colors and stuff
 
 #include "Depends/minhook/minhook.h"
 #include "Rendering/Kiero.hpp"
@@ -34,4 +34,5 @@
 
 #include "Exports.hpp"
 
+#define TEXTURE_QUEUED (ID3D11ShaderResourceView*)0x5555 // This is used inside the private code
 #define WAIT_FOR_DEBUGGER while (!IsDebuggerPresent()) Sleep(10)

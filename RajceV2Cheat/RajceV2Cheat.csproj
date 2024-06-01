@@ -110,7 +110,12 @@
     <Compile Include="Structs\Keybind.cs" />
     <Compile Include="FrontendPipe.cs" />
     <Compile Include="Tabs\CombatTab.cs" />
+    <Compile Include="Tabs\SettingsTab.cs" />
+    <Compile Include="Tabs\DebugTab.cs" />
+    <Compile Include="Tabs\MiscTab.cs" />
+    <Compile Include="Tabs\MovementTab.cs" />
     <Compile Include="Tabs\TabBase.cs" />
+    <Compile Include="Tabs\VisualsTab.cs" />
     <Compile Include="Utils.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -3,13 +3,9 @@
 
 #include "../Source.hpp"
 
-using namespace imelems;
-
 #pragma region Types & Definitions
 
 #define MenuSize 840, 525
-#define MenuHeaderHeight 64
-#define MenuLogoSizeX 200
 
 #define MenuFunc(name, args) RajceV2::Menu::##name##args
 
@@ -21,11 +17,12 @@ static ID3D11Resource* iconResource = nullptr;
 static ID3D11ShaderResourceView* menuIcon = nullptr;
 static Keybind* menuKey = nullptr;
 
-static uint32_t m_iActiveTab = 0;
+static RajceV2::UIBuilder::TabEntry* m_ActiveTab = nullptr;
 
-static const DWORD windowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar;
+static const DWORD windowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
 
 #pragma endregion
+
 
 void MenuFunc(Init, ()) {
 	LoadUnityTexture(iconResource, &menuIcon);
@@ -41,6 +38,8 @@ bool MenuFunc(GetState, ()) {
 	return menuKey->State;
 }
 void MenuFunc(Render, ()) {
+	using namespace imelems;
+
 	if (!GetState())
 		return;
 
@@ -54,253 +53,215 @@ void MenuFunc(Render, ()) {
 	ImGui::SetNextWindowPos(ImVec2(displaySize.x / 2 - wndSize.x / 2, displaySize.y / 2 - wndSize.y / 2), ImGuiCond_Once);
 	ImGui::Begin("RajceV2", nullptr, windowFlags);
 	{
-		ImVec2 logoSize = ImVec2(MenuLogoSizeX, MenuHeaderHeight);
-		ImVec2 tabsSize = ImVec2(wndSize.x - (logoSize.x + Window::DividerSize), MenuHeaderHeight);
-		ImVec2 sectionsSize = ImVec2(logoSize.x, wndSize.y - (logoSize.y + Window::DividerSize));
-		ImVec2 contentSize = ImVec2(wndSize.x - (sectionsSize.x + Window::DividerSize), wndSize.y - (tabsSize.y + Window::DividerSize));
-
-		// doing 0,0 vec just incase somebody wants to move it for some fucking reason
-		// These calculations can also be simplified to just use logoSize
-		ImVec2 logoPos = ImVec2(0, 0);
-		ImVec2 tabsPos = ImVec2(logoPos.x + logoSize.x + Window::DividerSize, logoPos.y);
-		ImVec2 sectionsPos = ImVec2(logoPos.x, logoPos.y + logoSize.y + Window::DividerSize);
-		ImVec2 contentPos = logoPos + ImVec2(sectionsSize.x + Window::DividerSize, tabsSize.y + Window::DividerSize);
-
 		ImGuiWindow* window = ImGui::GetCurrentWindow();
 		ImDrawList* draw = window->DrawList;
 		ImDrawList* fdraw = ImGui::GetForegroundDrawList();
+
 		ImVec2 pos = window->Pos;
-		
-		ImColor dbgCol = IM_COL32(0, 0, 255, 255);
-		// Debug boxes
+		ImVec2 wndSize = window->SizeFull;
+		ImVec2 posOffset = ImVec2(0, 0);
+
+		// Header
 		{
-			// Logo box
-			{
-				/*fdraw->AddRect(
-					pos + logoPos,
-					pos + logoPos + logoSize,
-					dbgCol
-				);
+			ImVec2 headerSize = ImVec2(wndSize.x, Window::HeaderHeight);
 
-				ImVec2 txtSize = ImGui::CalcTextSize("Logo");
-				fdraw->AddText(
-					pos + logoPos + (logoSize / 2 - txtSize / 2),
-					dbgCol,
-					"Logo"
-				);*/
-			}
-
-			// Tabs box
-			{
-				/*fdraw->AddRect(
-					pos + tabsPos,
-					pos + tabsPos + tabsSize,
-					dbgCol
-				);
-
-				ImVec2 txtSize = ImGui::CalcTextSize("Tabs");
-				fdraw->AddText(
-					pos + tabsPos + (tabsSize / 2 - txtSize / 2),
-					dbgCol,
-					"Tabs"
-				);*/
-			}
-
-			// Sections box
-			{
-				fdraw->AddRect(
-					pos + sectionsPos,
-					pos + sectionsPos + sectionsSize,
-					dbgCol
-				);
-
-				ImVec2 txtSize = ImGui::CalcTextSize("Sections");
-				fdraw->AddText(
-					pos + sectionsPos + (sectionsSize / 2 - txtSize / 2),
-					dbgCol,
-					"Sections"
-				);
-			}
-
-			// Content box
-			{
-				fdraw->AddRect(
-					pos + contentPos,
-					pos + contentPos + contentSize,
-					dbgCol
-				);
-
-				ImVec2 txtSize = ImGui::CalcTextSize("Content");
-				fdraw->AddText(
-					pos + contentPos + (contentSize / 2 - txtSize / 2),
-					dbgCol,
-					"Content"
-				);
-			}
-		}
-
-		// Separators
-		{
-			// Vertical line
 			draw->AddRectFilled(
-				pos + ImVec2(logoSize.x, 0),
-				pos + ImVec2(logoSize.x + Window::DividerSize, wndSize.y),
-				Window::DividerColor
+				pos,
+				pos + headerSize,
+				(ImGui::IsWindowFocused() ? Window::TitleActive : Window::TitleInactive),
+				Window::Rounding,
+				ImDrawFlags_RoundCornersTop
 			);
 
-			// Horizontal line
-			draw->AddRectFilled(
-				pos + ImVec2(0, logoSize.y),
-				pos + ImVec2(wndSize.x, logoSize.y + Window::DividerSize),
-				Window::DividerColor
-			);
-		}
-
-		// Logo
-		{
 			ImGui::PushFont(io.Fonts->Fonts[UIFonts_Header]);
 
-			ImColor sCol = IM_COL32(0, 255, 0, 255); 
-			ImColor eCol = IM_COL32(255, 0, 0, 255); 
-			
-			float imageSize = menuIcon == nullptr ? 0 : min(logoSize.x, logoSize.y);
+			float imgSize = (menuIcon == nullptr ? 0 : (UIFonts_Header_Size + Window::PaddingBetweenImageText));
 			ImVec2 txtSize = ImGui::CalcTextSize("RajceV2");
-			ImVec2 curPos = logoPos + ImVec2(logoSize.x / 2 - (txtSize.x + imageSize) / 2, 0);
-			curPos.x -= 2; // Comment this if the off-centered text is making you crazy (this is here to make logo with icon centered, cause am a clown and didn't remove transparent borders)
+			ImVec2 hPos = pos + (headerSize / 2 - (txtSize + ImVec2(imgSize, 0)) / 2);
 
-			// Need a better way to flip images than this
-			draw->AddImage(menuIcon, pos + curPos, pos + curPos + ImVec2(imageSize, imageSize), ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f));
-			curPos.x += imageSize;
-			curPos.y = logoPos.y + (logoSize.y / 2 - txtSize.y / 2);
+			if (menuIcon && menuIcon != TEXTURE_QUEUED) {
+				hPos.x -= 2;
+				draw->AddImage(
+					menuIcon,
+					hPos,
+					hPos + ImVec2(UIFonts_Header_Size, UIFonts_Header_Size),
+					ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f)
+				);
+				hPos.x += imgSize;
+			}
 
 			int vert_start = draw->VtxBuffer.Size;
 			draw->AddText(
-				pos + curPos,
-				sCol,
+				hPos,
+				Window::TextColor,
 				"RajceV2"
 			);
 			int vert_end = draw->VtxBuffer.Size;
-
-			ImVec2 offset = ImVec2(txtSize.x / 3, 0);
 			ImGui::ShadeVertsLinearColorGradientKeepAlpha(
 				draw,
 				vert_start,
 				vert_end,
-				pos + curPos + offset,
-				pos + curPos + (txtSize - offset),
-				sCol,
-				eCol
+				hPos,
+				hPos + ImVec2(txtSize.x - ImGui::CalcTextSize("V2").x, 0),
+				IM_COL32(0, 220, 0, 255),
+				IM_COL32(220, 0, 0, 255)
 			);
 
 			ImGui::PopFont();
 		}
 
+		// Background
+		draw->AddRectFilled(
+			pos + ImVec2(0, Window::HeaderHeight),
+			pos + wndSize,
+			Window::WindowBg,
+			Window::Rounding,
+			ImDrawFlags_RoundCornersBottom
+		);
+
+		posOffset.y += Window::HeaderHeight;
+
 		// Tabs
 		{
-			window->DC.CursorPos = pos + tabsPos;
+			size_t tcnt = 0;
+			UIBuilder::TabEntry** tabs = UIBuilder::GetTabs(&tcnt);
+			float widest = max(UIBuilder::GetWidestTab() + Tabs::PaddingSides * 2, wndSize.x / tcnt);
+			ImVec2 tPos = pos + posOffset;
+			ImVec2 tSize = ImVec2(widest, Tabs::TabHeight);
 
-			ImGui::BeginChild("##Tabs", tabsSize, false, ImGuiWindowFlags_NoScrollbar);
-			{
-				ImGuiWindow* cwindow = ImGui::GetCurrentWindow();
-				ImDrawList* cdraw = cwindow->DrawList;
-				ImVec2 cpos = cwindow->DC.CursorPos;
+			ImGui::PushFont(io.Fonts->Fonts[UIFonts_SectionText]);
+			for (size_t i = 0; i < tcnt; i++) {
+				UIBuilder::TabEntry* tab = tabs[i];
+				ImGuiID tabId = window->GetID(tab->name);
 
-				ImGui::PushFont(io.Fonts->Fonts[UIFonts_TabsText]);
-
-				// Draw tabs
-				{
-					size_t tcnt = 0;
-					UIBuilder::TabEntry** tabs = UIBuilder::GetTabs(&tcnt);
-
-					float tabWidth = UIBuilder::GetWidestTab();
-					ImVec2 tPos = cpos + ImVec2(0, 0); // This is here just if some one wants to add a lil offset
-					ImVec2 tabSize = ImVec2(tabWidth + Tabs::PaddingSides * 2, MenuHeaderHeight);
-					ImColor inactiveCol = ImGui::ColorConvertFloat4ToU32(Window::WindowBg);
-
-					for (size_t i = 0; i < tcnt; i++) {
-						UIBuilder::TabEntry* tab = tabs[i];
-						ImGuiID tabId = cwindow->GetID(tab->name);
-
-						// Tab selection
-						const ImRect bb(tPos, tPos + tabSize); 
-						if (!ImGui::ItemAdd(bb, tabId))
-							continue;
-
-						bool hovered, held; 
-						bool pressed = ImGui::ButtonBehavior(bb, tabId, &hovered, &held, ImGuiButtonFlags_MouseButtonLeft);
-						if (pressed || m_iActiveTab == 0)
-							m_iActiveTab = tab->id;
-
-						ImColor col = inactiveCol;
-						if (tab->id == m_iActiveTab)
-							col = Tabs::TabActiveColor;
-						else {
-							if (hovered)
-								col = Tabs::TabHoveredColor;
-						}
-
-						cdraw->AddRectFilled(
-							tPos,
-							tPos + tabSize,
-							col,
-							Tabs::Rounding,
-							ImDrawFlags_RoundCornersTop
-						);
-						
-						ImVec2 tcPos = tPos + (tabSize / 2 - ImVec2((tab->icon == nullptr ? 0 : UIFonts_TabsText_Size + Tabs::PaddingTextLeft) + tab->nameSize.x, tab->nameSize.y) / 2);
-						if (tab->icon) {
-							cdraw->AddImage(
-								tab->icon,
-								tcPos,
-								tcPos + ImVec2(UIFonts_TabsText_Size, UIFonts_TabsText_Size),
-								ImVec2(0.0f, 1.0f), ImVec2(1.0f, 0.0f)
-							);
-
-							tcPos.x += UIFonts_TabsText_Size;
-							tcPos.x += Tabs::PaddingTextLeft;
-						}
-
-						ImGui::RenderTextClipped(
-							tcPos,
-							tcPos + tab->nameSize,
-							tab->name,
-							nullptr,
-							&tab->nameSize
-						);
-
-						tPos.x += tabSize.x;
-					}
+				const ImRect bb(tPos, tPos + tSize);
+				ImGui::ItemSize(bb);
+				if (!ImGui::ItemAdd(bb, tabId, nullptr, ImGuiItemFlags_AllowOverlap)) {
+					tPos.x += widest;
+					continue;
 				}
 
-				// Draw scroll arrows here
-				{
-					//TODO: draw them, also check if there is more content to left and right
-					// and based on that draw arrows to the sides
+				bool held, hovered;
+				bool pressed = ImGui::ButtonBehavior(bb, tabId, &hovered, &held, ImGuiButtonFlags_AllowOverlap);
+				if (pressed || m_ActiveTab == nullptr)
+					m_ActiveTab = tab;
 
-
+				draw->AddRectFilled(
+					bb.Min,
+					bb.Max,
+					(m_ActiveTab == tab ? Window::TextColor : Tabs::TabActiveColor)
+				);
+				draw->AddText(
+					bb.Min + (tSize / 2 - tab->nameSize / 2) - ImVec2(0, 2),
+					(m_ActiveTab == tab ? Tabs::TabActiveColor : Window::TextColor),
+					tab->name
+				);
+				if (hovered) {
+					draw->AddRectFilled(
+						bb.Min,
+						bb.Max,
+						Tabs::TabHoveredColor
+					);
 				}
 
-				ImGui::PopFont();
+				tPos.x += widest;
 			}
-			ImGui::EndChild();
+			ImGui::PopFont();
+
+			// Shadow
+			{
+				ImColor shadow_top = IM_COL32(0, 0, 0, 180);
+				ImColor shadow_bottom = IM_COL32(0, 0, 0, 0);
+
+				tPos.x = pos.x;
+				fdraw->AddRectFilledMultiColor(
+					tPos,
+					tPos + ImVec2(wndSize.x, tSize.y / 3),
+					shadow_top, shadow_top, shadow_bottom, shadow_bottom
+				);
+			}
+
+			posOffset.y += Tabs::TabHeight;
 		}
 
 		// Sections
 		{
-			window->DC.CursorPos = pos + sectionsPos;
+			ImVec2 sPos = pos + posOffset;
+			float widest = wndSize.x / m_ActiveTab->sections.size();
+			ImVec2 sSize = ImVec2(widest, Tabs::TabHeight);
 
-			ImGui::BeginChild("##Sections", sectionsSize, false);
-			{
-				ImGuiWindow* cwindow = ImGui::GetCurrentWindow();
-				ImDrawList* cdraw = cwindow->DrawList;
-				ImVec2 cpos = cwindow->DC.CursorPos;
+			ImGui::PushFont(io.Fonts->Fonts[UIFonts_SectionText]);
+			for (UIBuilder::SectionEntry* sec : m_ActiveTab->sections) {
+				ImGuiID secId = window->GetID(sec->name);
 
-				ImGui::PushFont(io.Fonts->Fonts[UIFonts_SectionText]);
+				const ImRect bb(sPos, sPos + sSize);
+				ImGui::ItemSize(bb);
+				if (!ImGui::ItemAdd(bb, secId, nullptr, ImGuiItemFlags_AllowOverlap)) {
+					sPos.x += widest;
+					continue;
+				}
 
-				ImGui::PopFont();
+				bool held, hovered;
+				bool pressed = ImGui::ButtonBehavior(bb, secId, &hovered, &held, ImGuiButtonFlags_AllowOverlap);
+				if (pressed)
+					m_ActiveTab->currSection = sec->id;
+
+				draw->AddRectFilled(
+					bb.Min,
+					bb.Max,
+					(m_ActiveTab->currSection == sec->id ? Window::TextColor : Tabs::TabActiveColor)
+				);
+				draw->AddText(
+					bb.Min + (sSize / 2 - sec->nameSize / 2) - ImVec2(0, 2),
+					(m_ActiveTab->currSection == sec->id ? Tabs::TabActiveColor : Window::TextColor),
+					sec->name
+				);
+				if (hovered) {
+					draw->AddRectFilled(
+						bb.Min,
+						bb.Max,
+						Tabs::TabHoveredColor
+					);
+				}
+
+				sPos.x += widest;
 			}
-			ImGui::EndChild();
+			ImGui::PopFont();
+
+			// Shadow
+			{
+				ImColor shadow_top = IM_COL32(0, 0, 0, 180);
+				ImColor shadow_bottom = IM_COL32(0, 0, 0, 0);
+
+				sPos.x = pos.x;
+				fdraw->AddRectFilledMultiColor(
+					sPos,
+					sPos + ImVec2(wndSize.x, sSize.y / 3),
+					shadow_top, shadow_top, shadow_bottom, shadow_bottom
+				);
+			}
+
+			posOffset.y += Tabs::TabHeight;
 		}
+
+		// Shadow
+		{
+			ImColor shadow_top = IM_COL32(0, 0, 0, 180);
+			ImColor shadow_bottom = IM_COL32(0, 0, 0, 0);
+
+			fdraw->AddRectFilledMultiColor(
+				pos + posOffset,
+				pos + posOffset + ImVec2(wndSize.x, Tabs::TabHeight),
+				shadow_top, shadow_top, shadow_bottom, shadow_bottom
+			);
+		}
+
+		window->DC.CursorPos = pos + posOffset;
+		ImGui::BeginChild("##Content", wndSize - ImVec2(0, posOffset.y));
+		{
+
+		}
+		ImGui::EndChild();
 	}
 	ImGui::End();
 }

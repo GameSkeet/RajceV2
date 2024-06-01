@@ -1,46 +1,28 @@
 #pragma once
 
-#define RGBA_TO_IMVEC(r, g, b, a) ImVec4(r / 255.f, g / 255.f, b / 255.f, a / 255.f)
-
 namespace imelems {
 	namespace Window {
 		static float Rounding = 5.f;
-		static int DividerSize = 3;
+		
+		static float PaddingBetweenImageText = 5.f;
+		static float HeaderHeight = 48.f;
 
-		static ImVec4 BorderColor = RGBA_TO_IMVEC(255, 0, 0, 255);
+		static ImColor BorderColor = IM_COL32(255, 0, 0, 255);
 
-		static ImVec4 WindowBg = RGBA_TO_IMVEC(80, 30, 30, 255);
+		static ImColor WindowBg = IM_COL32(220, 30, 30, 255);
 
-		static ImVec4 TitleInactive = RGBA_TO_IMVEC(10, 120, 20, 220);
-		static ImVec4 TitleActive = RGBA_TO_IMVEC(20, 170, 20, 255);
+		static ImColor TitleInactive = IM_COL32(10, 120, 20, 150);
+		static ImColor TitleActive = IM_COL32(20, 170, 20, 180);
 
 		static ImColor TextColor = IM_COL32(255, 255, 255, 255);
-
-		static ImColor DividerColor = IM_COL32(15, 15, 15, 255);
 	}
 
+	// This is also used for sections
 	namespace Tabs {
-		static float Rounding = 5.f;
 		static float PaddingSides = 5.f;
-		static float PaddingTextLeft = 5.f; // The padding between icon and text
+		static float TabHeight = UIFonts_SectionText_Size + 6;
 
-		// Inactive color is WindowBg
-		static ImColor TabHoveredColor = IM_COL32(120, 30, 30, 255);
-		static ImColor TabActiveColor = IM_COL32(160, 40, 40, 255);
-	}
-
-	namespace Sections {
-		// Selector shouldn't be used when inverting sections with tabs
-
-		static float Rounding = 5.f;
-		static float PaddingSides = 5.f;
-		static float PaddingFromSelector = 10.f;
-		static float PaddingTextLeft = 5.f; // The padding between icon and text
-
-		static float SelectorWidth = 5.f;
-
-		static ImColor SecHoveredColor;
-		static ImColor SecActiveColor;
-		static ImColor SecSelectorColor; // The rectangle on the selected tab
+		static ImColor TabHoveredColor = IM_COL32(255, 180, 180, 30);
+		static ImColor TabActiveColor = IM_COL32(60, 36, 36, 255);
 	}
 }

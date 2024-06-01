@@ -15,13 +15,12 @@ extern "C" {
 	__declspec(dllexport) void SetMenuKeybind(Keybind* keybind);
 
 	// UI builder
-	__declspec(dllexport) uint32_t BeginTab(const wchar_t* name, ID3D11Resource* icon);
+	__declspec(dllexport) uint32_t BeginTab(const wchar_t* name);
 	__declspec(dllexport) void EndTab();
 	__declspec(dllexport) void RemoveTab(uint32_t tab_id);
 
-	__declspec(dllexport) uint32_t BeginSection(const wchar_t* name, ID3D11Resource* icon);
+	__declspec(dllexport) void BeginSection(const wchar_t* name);
 	__declspec(dllexport) void EndSection();
-	__declspec(dllexport) void RemoveSection(uint32_t id);
 
 	// Keybind list
 	__declspec(dllexport) bool* GetKeybindListVisiblePtr();

@@ -22,9 +22,6 @@ void ImGui::LoadFont(UIFonts type, byte* buff, int len) {
 		case UIFonts_SectionText:
 			size = UIFonts_SectionText_Size;
 			break;
-		case UIFonts_TabsText:
-			size = UIFonts_TabsText_Size;
-			break;
 		case UIFonts_Header:
 			size = UIFonts_Header_Size;
 			break;

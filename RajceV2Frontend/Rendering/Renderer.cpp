@@ -56,6 +56,7 @@ __forceinline void InitImGui() {
 		style.ItemSpacing = ImVec2(0, 0);
 
 		style.WindowBorderSize = 0.f;
+		style.ScrollbarSize = 5.f;
 		style.Alpha = 1.f;
 
 		style.WindowRounding = Window::Rounding;
