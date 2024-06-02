@@ -14,14 +14,26 @@ namespace RajceV2Cheat
 {
     internal static class Menu
     {
-        private static Dictionary<string, uint> tabToId = new Dictionary<string, uint>();
+        private struct TabData
+        {
+            public uint ID;
+            public TabBase Tab;
+
+            public TabData(uint id, TabBase t)
+            {
+                ID = id;
+                Tab = t;
+            }
+        }
+
+        private static Dictionary<string, TabData> tabToId = new Dictionary<string, TabData>();
         private static Texture2D icon = null;
 
         public static IntPtr MenuKey { get; private set; } = IntPtr.Zero;
 
         private static void AddTab(TabBase tab)
         {
-            tabToId[tab.Name] = FrontendPipe.BeginTab(tab.Name);
+            tabToId[tab.Name] = new TabData(FrontendPipe.BeginTab(tab.Name), tab);
             {
                 foreach (KeyValuePair<string, TabBase.DrawSectionDelegate> kvp in tab.Sections)
                 {
@@ -71,8 +83,11 @@ namespace RajceV2Cheat
 
         public static void Destroy()
         {
-            foreach (KeyValuePair<string, uint> kvp in tabToId)
-                FrontendPipe.RemoveTab(kvp.Value);
+            foreach (KeyValuePair<string, TabData> kvp in tabToId)
+            {
+                FrontendPipe.RemoveTab(kvp.Value.ID);
+                kvp.Value.Tab.FreeHandles();
+            }
 
             tabToId.Clear();
         }

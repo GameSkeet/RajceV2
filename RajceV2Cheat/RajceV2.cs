@@ -3,8 +3,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 using MelonLoader;
 
-using RajceV2Cheat.Structs;
-
 namespace RajceV2Cheat
 {
     public class RajceV2 : MelonMod

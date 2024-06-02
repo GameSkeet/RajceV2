@@ -62,6 +62,20 @@ void EndSection() {
 	UIBuilder::EndSection();
 }
 
+void BeginContentBox(const wchar_t* name) {
+	UIBuilder::BeginContentBox(name);
+}
+void EndContentBox() {
+	UIBuilder::EndContentBox();
+}
+
+void* AddElement(uint32_t type, const wchar_t* text, void* target, void* callback) {
+	return (void*)UIBuilder::AddElement((UIBuilder::ElementType)type, text, target, callback);
+}
+void SetElementMinMax(void* elem, float min, float max) {
+	UIBuilder::SetElementMinMax((UIBuilder::ElementEntry*)elem, min, max);
+}
+
 // Keybind list
 bool* GetKeybindListVisiblePtr() {
 	return &KeybindList::IsVisible;

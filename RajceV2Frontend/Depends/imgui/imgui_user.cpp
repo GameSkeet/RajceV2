@@ -1,6 +1,32 @@
 #include "../../Source.hpp"
 #include "imgui_impl_dx11.h"
 
+static ImVector<ImWchar> ranges;
+static bool m_bInited = false;
+void InitRanges() {
+	if (m_bInited)
+		return;
+
+	ImGuiIO& io = ImGui::GetIO();
+	ImFontGlyphRangesBuilder builder;
+
+	static const ImWchar chars[] = {
+		0x0020,
+		0x00FF, // Basic Latin + Latin Supplement
+		0x0100,
+		0x024F, // Latin ex a b
+		0,
+	};
+
+	builder.AddRanges(chars);
+	builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
+	builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
+	builder.AddRanges(io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
+	builder.BuildRanges(&ranges);
+
+	m_bInited = true;
+}
+
 void ImGui::ConvertStrToUTF8(char** out_buf, const wchar_t* str) {
 	ImWchar* _str = (ImWchar*)str;
 
@@ -15,6 +41,8 @@ void ImGui::LoadFont(UIFonts type, byte* buff, int len) {
 	ImFontConfig cfg;
 	cfg.FontDataOwnedByAtlas = false;
 	
+	InitRanges();
+
 	ImGuiIO& io = ImGui::GetIO();
 	float size = UIFonts_Text_Size;
 	switch (type)
@@ -27,7 +55,7 @@ void ImGui::LoadFont(UIFonts type, byte* buff, int len) {
 			break;
 	}
 
-	io.Fonts->Fonts[type] = io.Fonts->AddFontFromMemoryTTF(buff, len, size, &cfg, io.Fonts->GetGlyphRangesCyrillic());
+	io.Fonts->Fonts[type] = io.Fonts->AddFontFromMemoryTTF(buff, len, size, &cfg, ranges.Data);
 	io.Fonts->Build();
 	ImGui_ImplDX11_InvalidateDeviceObjects();
 }

@@ -22,6 +22,12 @@ extern "C" {
 	__declspec(dllexport) void BeginSection(const wchar_t* name);
 	__declspec(dllexport) void EndSection();
 
+	__declspec(dllexport) void BeginContentBox(const wchar_t* name);
+	__declspec(dllexport) void EndContentBox();
+
+	__declspec(dllexport) void* AddElement(uint32_t type, const wchar_t* text, void* target, void* callback);
+	__declspec(dllexport) void SetElementMinMax(void* elem, float min, float max);
+
 	// Keybind list
 	__declspec(dllexport) bool* GetKeybindListVisiblePtr();
 
