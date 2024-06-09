@@ -77,6 +77,11 @@ namespace RajceV2Cheat
 #endif
 
             FrontendPipe.SetMenuIcon(icon.GetNativeTexturePtr());
+            FrontendPipe.SetKeycodeConverter((k) =>
+            {
+                return Marshal.StringToHGlobalUni(((KeyCode)k).ToString());
+            });
+
             // Nothing will render until the key is set
             FrontendPipe.SetMenuKeybind(MenuKey);
         }

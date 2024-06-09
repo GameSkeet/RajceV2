@@ -34,7 +34,8 @@ namespace RajceV2Cheat
             SliderInt,
             SliderFloat,
             Colorpicker,
-            Combo
+            Combo,
+            Keybind
         };
 
         #region Delegates
@@ -62,6 +63,8 @@ namespace RajceV2Cheat
         public delegate void SetMenuIconDelegate(IntPtr icon);
         [UnmanagedFunctionPointer(CALL_CONV)]
         public delegate void SetMenuKeybindDelegate(IntPtr keybind);
+        [UnmanagedFunctionPointer(CALL_CONV)]
+        private delegate void SetMenuKeycodeConverterDelegate(IntPtr func);
 
         #endregion
         #region UI builder
@@ -87,6 +90,7 @@ namespace RajceV2Cheat
         private delegate IntPtr AddElementDelegate(ElementType type, IntPtr text, void* target, IntPtr callback);
         [UnmanagedFunctionPointer(CALL_CONV)]
         private delegate void SetElementMinMaxDelegate(IntPtr elem, float min, float max);
+        private delegate void SetComboValuesDelegate(IntPtr elem, IntPtr options, int num_options, bool multi);
 
         #endregion
         #region Keybind list
@@ -106,6 +110,12 @@ namespace RajceV2Cheat
         public delegate void OnButtonClickCallback();
         [UnmanagedFunctionPointer(CALL_CONV)]
         public delegate void OnCheckboxCallback(bool val);
+        [UnmanagedFunctionPointer(CALL_CONV)]
+        public delegate void OnSliderChanged(float val);
+        [UnmanagedFunctionPointer(CALL_CONV)]
+        public delegate void OnComboChanged();
+        [UnmanagedFunctionPointer(CALL_CONV)]
+        public delegate IntPtr GetKeycodeNameCallback(int keycode);
 
         #endregion
         #region Functions
@@ -179,6 +189,13 @@ namespace RajceV2Cheat
 
             return (T)Marshal.GetDelegateForFunctionPointer(export, typeof(T));
         }
+        private static IntPtr GetFnPtr(Delegate d)
+        {
+            if (d == null)
+                return IntPtr.Zero;
+
+            return Marshal.GetFunctionPointerForDelegate(d);
+        }
 
         public static bool InitTransporter()
         {
@@ -241,6 +258,15 @@ namespace RajceV2Cheat
         }
 
         #endregion
+        #region Menu
+
+        public static void SetKeycodeConverter(GetKeycodeNameCallback callback)
+        {
+            SetMenuKeycodeConverterDelegate setConv = GetExport<SetMenuKeycodeConverterDelegate>("SetMenuKeybindConverter");
+            setConv(GetFnPtr(callback));
+        }
+
+        #endregion
         #region UI builder
 
         public static uint BeginTab(string name)
@@ -262,13 +288,40 @@ namespace RajceV2Cheat
             begin(Marshal.StringToHGlobalUni(name));
         }
 
-        public static void AddButton(string text, OnButtonClickCallback onClick)
+        public static void AddButton(string text, OnButtonClickCallback onClick = null)
         {
-            AddElement(ElementType.Button, Marshal.StringToHGlobalUni(text), (void*)0, Marshal.GetFunctionPointerForDelegate(onClick));
+            AddElement(ElementType.Button, Marshal.StringToHGlobalUni(text), (void*)0, GetFnPtr(onClick));
         }
-        public static void AddCheckbox(string text, bool* target, OnCheckboxCallback onClick)
+        public static void AddCheckbox(string text, bool* target, OnCheckboxCallback onClick = null)
         {
-            AddElement(ElementType.Checkbox, Marshal.StringToHGlobalUni(text), target, Marshal.GetFunctionPointerForDelegate(onClick));
+            AddElement(ElementType.Checkbox, Marshal.StringToHGlobalUni(text), target, GetFnPtr(onClick));
+        }
+        public static void AddSliderInt(string text, int* target, int min, int max, OnSliderChanged onChanged = null)
+        {
+            IntPtr elem = AddElement(ElementType.SliderInt, Marshal.StringToHGlobalUni(text), target, GetFnPtr(onChanged));
+            SetElementMinMax(elem, min, max);
+        }
+        public static void AddSliderFloat(string text, float* target, float min, float max, OnSliderChanged onChanged = null)
+        {
+            IntPtr elem = AddElement(ElementType.SliderFloat, Marshal.StringToHGlobalUni(text), target, GetFnPtr(onChanged));
+            SetElementMinMax(elem, min, max);
+        }
+        // WARNING: set default selected value to -1, if using multi set all of the values to -1, also multi array should be the same length as the options array
+        public static void AddComboBox(string text, int* selected, string[] options, bool isMulti = false, OnComboChanged onChanged = null)
+        {
+            SetComboValuesDelegate setValues = GetExport<SetComboValuesDelegate>("SetComboValues");
+
+            // All of the marshaled strings are freed inside the setValues function
+            IntPtr[] hgoptions = new IntPtr[options.Length];
+            for (int i = 0; i < options.Length; i++)
+                hgoptions[i] = Marshal.StringToHGlobalUni(options[i]);
+
+            IntPtr elem = AddElement(ElementType.Combo, Marshal.StringToHGlobalUni(text), selected, GetFnPtr(onChanged));
+            setValues(elem, Marshal.UnsafeAddrOfPinnedArrayElement(hgoptions, 0), hgoptions.Length, isMulti);
+        }
+        public static void AddKeybind(string text, IntPtr keybind)
+        {
+            AddElement(ElementType.Keybind, Marshal.StringToHGlobalUni(text), keybind.ToPointer(), IntPtr.Zero);
         }
 
         #endregion

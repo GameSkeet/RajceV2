@@ -13,6 +13,7 @@ extern "C" {
 	// Menu
 	__declspec(dllexport) void SetMenuIcon(ID3D11Resource* icon);
 	__declspec(dllexport) void SetMenuKeybind(Keybind* keybind);
+	__declspec(dllexport) void SetMenuKeybindConverter(void* func); // The function should return a wchar_t* and its first param should be an int
 
 	// UI builder
 	__declspec(dllexport) uint32_t BeginTab(const wchar_t* name);
@@ -27,6 +28,7 @@ extern "C" {
 
 	__declspec(dllexport) void* AddElement(uint32_t type, const wchar_t* text, void* target, void* callback);
 	__declspec(dllexport) void SetElementMinMax(void* elem, float min, float max);
+	__declspec(dllexport) void SetComboValues(void* elem, const wchar_t** options, int num_options, bool multi);
 
 	// Keybind list
 	__declspec(dllexport) bool* GetKeybindListVisiblePtr();

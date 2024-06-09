@@ -31,6 +31,8 @@ static ImVec2 CalcTextSize(const char* text, UIFonts fontt) {
 
 static void DestroyElement(UIBuilder::ElementEntry* elem) {
 	free(elem->text);
+	for (int i = 0; i < elem->num_options; i++)
+		free((char*)elem->options[i]);
 
 	delete elem;
 }
@@ -157,6 +159,21 @@ void UIBFunc(SetElementMinMax, (ElementEntry* elem, float fmin, float fmax)) {
 	
 	elem->min = fmin;
 	elem->max = fmax;
+}
+void UIBFunc(SetComboValues, (ElementEntry* elem, const wchar_t** options, int num_options, bool multi)) {
+	if (!elem)
+		return;
+
+	elem->num_options = num_options;
+	elem->is_multi = multi;
+
+	char** coptions = new char*[num_options];
+	for (int i = 0; i < num_options; i++) {
+		const wchar_t* str = options[i];
+		ImGui::ConvertStrToUTF8(&coptions[i], str);
+		GlobalFree((void*)str);
+	}
+	elem->options = (const char**)coptions;
 }
 
 float UIBFunc(GetWidestTab, ()) {

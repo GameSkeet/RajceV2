@@ -14,11 +14,39 @@ namespace RajceV2Cheat
     {
         private static List<GCHandle> keybinds = new List<GCHandle>();
 
+        private static bool GetPressedKey(out KeyCode keycode)
+        {
+            keycode = KeyCode.None;
+
+            foreach (KeyCode kc in Enum.GetValues(typeof(KeyCode)))
+                if (Input.GetKeyUp(kc)) // The key must actually be pressed
+                {
+                    keycode = kc;
+                    return true;
+                }
+
+            return false;
+        }
+
         public unsafe static void OnUpdate()
         {
             for (int i = 0; i < keybinds.Count; i++)
             {
                 Keybind* key = (Keybind*)keybinds[i].AddrOfPinnedObject();
+                if (key->Keycode == 0)
+                {
+                    key->State = false;
+                    continue;
+                }
+                if (key->Rebinding)
+                {
+                    KeyCode k;
+                    if (!GetPressedKey(out k))
+                        continue;
+
+                    key->Keycode = (int)k;
+                    key->Rebinding = false;
+                }
 
                 switch (key->Type)
                 {

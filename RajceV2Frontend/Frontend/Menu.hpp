@@ -11,5 +11,6 @@ namespace RajceV2 {
 
 		void SetIcon(ID3D11Resource* icon);
 		void SetKeybind(Keybind* keybind);
+		void SetKeybindConverter(void* func);
 	}
 }

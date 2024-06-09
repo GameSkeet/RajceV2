@@ -13,6 +13,19 @@ namespace RajceV2Cheat.Tabs
         protected Dictionary<string, GCHandle> Handles = new Dictionary<string, GCHandle>();
         public Dictionary<string, DrawSectionDelegate> Sections { get; protected set; } = new Dictionary<string, DrawSectionDelegate>();
 
+        protected static int[] CreateComboArray(int len)
+        {
+            int[] arr = new int[len];
+            for (int i = 0; i < len; i++)
+                arr[i] = 1;
+
+            return arr;
+        }
+        protected unsafe static T* ArrayToPtr<T>(Array arr)
+        {
+            return (T*)Marshal.UnsafeAddrOfPinnedArrayElement(arr, 0).ToPointer();
+        }
+
         protected abstract void AddSections();
 
         protected TabBase()

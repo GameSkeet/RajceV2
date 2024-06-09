@@ -43,6 +43,9 @@ void SetMenuIcon(ID3D11Resource* icon) {
 void SetMenuKeybind(Keybind* keybind) {
 	Menu::SetKeybind(keybind);
 }
+void SetMenuKeybindConverter(void* func) {
+	Menu::SetKeybindConverter(func);
+}
 
 // UI builder
 uint32_t BeginTab(const wchar_t* name) {
@@ -74,6 +77,9 @@ void* AddElement(uint32_t type, const wchar_t* text, void* target, void* callbac
 }
 void SetElementMinMax(void* elem, float min, float max) {
 	UIBuilder::SetElementMinMax((UIBuilder::ElementEntry*)elem, min, max);
+}
+void SetComboValues(void* elem, const wchar_t** options, int num_options, bool multi) {
+	UIBuilder::SetComboValues((UIBuilder::ElementEntry*)elem, options, num_options, multi);
 }
 
 // Keybind list

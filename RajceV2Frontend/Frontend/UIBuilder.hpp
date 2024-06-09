@@ -11,7 +11,8 @@ namespace RajceV2 {
 			ElementType_SliderInt,
 			ElementType_SliderFloat,
 			ElementType_Colorpicker,
-			ElementType_Combo
+			ElementType_Combo,
+			ElementType_Keybind
 		};
 
 		struct ElementEntry {
@@ -20,7 +21,18 @@ namespace RajceV2 {
 
 			void* target;
 			void* callback;
+
+			// Slider specific
 			float min, max;
+
+			// Combo specific
+			const char** options;
+			int num_options;
+			bool is_multi;
+
+			// States
+			bool is_open;
+			bool pending_key;
 		};
 		struct ContentBoxEntry {
 		public:
@@ -61,6 +73,7 @@ namespace RajceV2 {
 
 		ElementEntry* AddElement(ElementType type, const wchar_t* text, void* target, void* callback);
 		void SetElementMinMax(ElementEntry* elem, float min, float max);
+		void SetComboValues(ElementEntry* elem, const wchar_t** options, int num_options, bool multi);
 
 		// Internal functions
 		float GetWidestTab();

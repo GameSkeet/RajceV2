@@ -60,6 +60,7 @@ __forceinline void InitImGui() {
 		style.Alpha = 1.f;
 
 		style.WindowRounding = Window::Rounding;
+		style.GrabMinSize = Elements::GrabWidth;
 
 		style.Colors[ImGuiCol_Border] = Window::BorderColor;
 		style.Colors[ImGuiCol_WindowBg] = Window::WindowBg;

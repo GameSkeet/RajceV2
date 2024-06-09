@@ -5,6 +5,9 @@ using System.Collections.Generic;
 
 using UnityEngine;
 
+using RajceV2Cheat.Structs;
+using System.Runtime.CompilerServices;
+
 namespace RajceV2Cheat
 {
     internal static class Utils
@@ -38,5 +41,27 @@ namespace RajceV2Cheat
 
             return Bundles[name] = bundle; // Chache the bundle so we dont need to load it more than once
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe Keybind* GetKeybind(IntPtr keybind) => (Keybind*)keybind.ToPointer();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe bool GetKeybindState(IntPtr keybind) => GetKeybind(keybind)->State;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe KeybindType GetKeybindType(IntPtr keybind) => GetKeybind(keybind)->Type;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe KeyCode GetKeybindKey(IntPtr keybind) => (KeyCode)GetKeybind(keybind)->Keycode;
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void SetKeybindKey(IntPtr keybind, KeyCode keycode)
+        {
+            Keybind* kb = GetKeybind(keybind);
+            kb->Keycode = (int)keycode;
+            kb->Rebinding = false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe bool IsKeybindRebinding(IntPtr keybind) => GetKeybind(keybind)->Rebinding;
     }
 }

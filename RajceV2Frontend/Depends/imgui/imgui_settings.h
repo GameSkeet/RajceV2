@@ -42,13 +42,19 @@ namespace imelems {
 		static float Rounding = 5.f;
 		static float PaddingSides = 5.f;
 		static float InnerPadding = 5.f;
+		static float BorderThickness = 2.f;
 		static float PaddingBetweenElems = 10.f;
 		static float MainElementHeight = UIFonts_Text_Size; // This just sets the minimal "main" element height (by main i mean the thing you can interact with)
+
+		static float GrabWidth = 10.f;
+		static int ComboBoxHeight = 4; // This value is in items (aka n * UIFonts_Text_Size)
 
 		static ImColor PrimaryColor = IM_COL32(120, 30, 30, 255);
 		static ImColor HeldColor = IM_COL32(255, 180, 180, 80);
 		static ImColor HoveredColor = IM_COL32(255, 180, 180, 30);
 
 		static ImColor SecondaryColor = IM_COL32(20, 170, 20, 255);
+
+		static ImColor BorderColor = IM_COL32(160, 80, 80, 255);
 	}
 }

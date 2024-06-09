@@ -8,9 +8,12 @@
 typedef void(__cdecl* fBtnCallback)();
 typedef void(__cdecl* fCheckboxCallback)(bool val);
 typedef void(__cdecl* fSliderCallback)(float val);
+typedef void(__cdecl* fComboBoxCallback)();
+typedef wchar_t*(__cdecl* fConvertKeyCode)(int keycode);
 
 #define MenuSize 840, 525
 #define MenuFunc(name, args) RajceV2::Menu::##name##args
+#define keyMap std::unordered_map<int, char*>
 
 #pragma endregion
 #pragma region Variables
@@ -19,14 +22,18 @@ static bool m_bInvokedInit = false;
 static ID3D11Resource* iconResource = nullptr;
 static ID3D11ShaderResourceView* menuIcon = nullptr;
 static Keybind* menuKey = nullptr;
+static fConvertKeyCode convertKeycode = nullptr;
 
 static RajceV2::UIBuilder::TabEntry* m_ActiveTab = nullptr;
+static keyMap key2name;
 
 static const DWORD windowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
 
 #pragma endregion
 #pragma region Custom imgui elements
 
+// Any offsets to text on y axis by 2px is just correction for the used font
+// Should prob put that as a macro
 namespace ImGui {
 	bool CButton(const char* text) {
 		using namespace imelems;
@@ -85,6 +92,15 @@ namespace ImGui {
 			);
 		}
 
+		draw->AddRect(
+			bb.Min,
+			bb.Max,
+			Elements::BorderColor,
+			Elements::Rounding,
+			0,
+			Elements::BorderThickness
+		);
+
 		return pressed;
 	}
 	bool CCheckbox(const char* text, bool* target) {
@@ -139,6 +155,15 @@ namespace ImGui {
 			);
 		}
 
+		draw->AddRect(
+			bb.Min,
+			bb.Min + ImVec2(size.y, size.y),
+			Elements::BorderColor,
+			Elements::Rounding,
+			0,
+			Elements::BorderThickness
+		);
+
 		RenderTextClipped(
 			bb.Min + ImVec2(size.y + Elements::InnerPadding, -2),
 			bb.Max,
@@ -150,14 +175,567 @@ namespace ImGui {
 
 		return pressed;
 	}
-	bool CSliderInt(const char* text, int* val, float min, float max) {
-		return false;
+	bool CSliderInt(const char* text, int* val, float v_min, float v_max) {
+		using namespace imelems;
+		const ImGuiDataType_ DATA_TYPE = ImGuiDataType_S32;
+
+		ImGuiWindow* wnd = GetCurrentWindow();
+		if (wnd->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		const ImGuiStyle& style = g.Style;
+		const ImGuiID id = wnd->GetID(text);
+		const char* format = DataTypeGetInfo(DATA_TYPE)->PrintFmt;
+
+		ImDrawList* draw = wnd->DrawList;
+		ImVec2 pos = wnd->DC.CursorPos;
+		ImVec2 cSize = GetContentRegionMax();
+		ImVec2 size = ImVec2(cSize.x - Elements::PaddingSides * 2, Elements::MainElementHeight + UIFonts_Text_Size * 2 + Elements::InnerPadding * 2);
+
+		const ImRect bb(pos, pos + size);
+		ImVec2 sPos = ImVec2(bb.Min.x, bb.Min.y + UIFonts_Text_Size + Elements::InnerPadding);
+		const ImRect slider_bb(sPos, ImVec2(bb.Max.x, sPos.y + Elements::MainElementHeight));
+		ImVec2 vPos = ImVec2(bb.Min.x, slider_bb.Max.y + Elements::InnerPadding);
+		const ImRect val_bb(vPos, bb.Max);
+
+		ItemSize(bb);
+		if (!ItemAdd(bb, id, &bb, ImGuiItemFlags_Inputable))
+			return false;
+
+		const bool hovered = ItemHoverable(slider_bb, id, g.LastItemData.InFlags);
+		const bool clicked = hovered && IsMouseClicked(0, id);
+		const bool make_active = (clicked || g.NavActivateId == id);
+		if (make_active && clicked)
+			SetKeyOwner(ImGuiKey_MouseLeft, id);
+		if (make_active) {
+			SetActiveID(id, wnd);
+			SetFocusID(id, wnd);
+			FocusWindow(wnd);
+			g.ActiveIdUsingNavDirMask |= (1 << ImGuiDir_Left) | (1 << ImGuiDir_Right);
+		}
+
+		// Slider text
+		RenderTextClipped(
+			bb.Min,
+			ImVec2(bb.Max.x, bb.Min.y + UIFonts_Text_Size + Elements::InnerPadding),
+			text,
+			nullptr,
+			nullptr
+		);
+
+		// Slider thing
+		bool value_changed = false;
+		{
+			float height = Elements::MainElementHeight / 4.f; // The height of the middle bar
+			float gwidth = style.GrabMinSize;
+			float space = (Elements::MainElementHeight - height * 2) / 2.f;
+
+			int iv_min = (int)v_min;
+			int iv_max = (int)v_max;
+
+			ImRect grab_bb;
+			value_changed = SliderBehavior(slider_bb, id, DATA_TYPE, val, &iv_min, &iv_max, format, 0, &grab_bb);
+			if (value_changed)
+				MarkItemEdited(id);
+
+			draw->AddRectFilled(
+				slider_bb.Min + ImVec2(3, space),
+				slider_bb.Max - ImVec2(3, space),
+				Elements::SecondaryColor,
+				Elements::Rounding
+			);
+
+			// Grab
+			draw->AddRectFilled(
+				grab_bb.Min,
+				ImVec2(grab_bb.Min.x + gwidth, grab_bb.Max.y),
+				Elements::PrimaryColor,
+				Elements::Rounding
+			);
+			if (g.ActiveId == id)
+				draw->AddRectFilled(
+					grab_bb.Min,
+					ImVec2(grab_bb.Min.x + gwidth, grab_bb.Max.y),
+					Elements::HeldColor,
+					Elements::Rounding
+				);
+			else if (hovered)
+				draw->AddRectFilled(
+					grab_bb.Min,
+					ImVec2(grab_bb.Min.x + gwidth, grab_bb.Max.y),
+					Elements::HoveredColor,
+					Elements::Rounding
+				);
+		}
+
+		char val_buf[64];
+		const char* val_buf_end = val_buf + DataTypeFormatString(val_buf, IM_ARRAYSIZE(val_buf), DATA_TYPE, val, format);
+		RenderTextClipped(
+			val_bb.Min - ImVec2(0, 2),
+			val_bb.Max - ImVec2(0, 2),
+			val_buf,
+			val_buf_end,
+			nullptr,
+			ImVec2(0.5f, 0.5f)
+		);
+
+		return value_changed;
 	}
-	bool CSliderFloat(const char* text, float* val, float min, float max) {
-		return false;
+	bool CSliderFloat(const char* text, float* val, float v_min, float v_max) {
+		using namespace imelems;
+		const ImGuiDataType_ DATA_TYPE = ImGuiDataType_Float;
+
+		ImGuiWindow* wnd = GetCurrentWindow();
+		if (wnd->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		const ImGuiStyle& style = g.Style;
+		const ImGuiID id = wnd->GetID(text);
+		const char* format = DataTypeGetInfo(DATA_TYPE)->PrintFmt;
+
+		ImDrawList* draw = wnd->DrawList;
+		ImVec2 pos = wnd->DC.CursorPos;
+		ImVec2 cSize = GetContentRegionMax();
+		ImVec2 size = ImVec2(cSize.x - Elements::PaddingSides * 2, Elements::MainElementHeight + UIFonts_Text_Size * 2 + Elements::InnerPadding * 2);
+
+		const ImRect bb(pos, pos + size);
+		ImVec2 sPos = ImVec2(bb.Min.x, bb.Min.y + UIFonts_Text_Size + Elements::InnerPadding);
+		const ImRect slider_bb(sPos, ImVec2(bb.Max.x, sPos.y + Elements::MainElementHeight));
+		ImVec2 vPos = ImVec2(bb.Min.x, slider_bb.Max.y + Elements::InnerPadding);
+		const ImRect val_bb(vPos, bb.Max);
+
+		ItemSize(bb);
+		if (!ItemAdd(bb, id, &bb, ImGuiItemFlags_Inputable))
+			return false;
+
+		const bool hovered = ItemHoverable(slider_bb, id, g.LastItemData.InFlags);
+		const bool clicked = hovered && IsMouseClicked(0, id);
+		const bool make_active = (clicked || g.NavActivateId == id);
+		if (make_active && clicked)
+			SetKeyOwner(ImGuiKey_MouseLeft, id);
+		if (make_active) {
+			SetActiveID(id, wnd);
+			SetFocusID(id, wnd);
+			FocusWindow(wnd);
+			g.ActiveIdUsingNavDirMask |= (1 << ImGuiDir_Left) | (1 << ImGuiDir_Right);
+		}
+
+		// Slider text
+		RenderTextClipped(
+			bb.Min,
+			ImVec2(bb.Max.x, bb.Min.y + UIFonts_Text_Size + Elements::InnerPadding),
+			text,
+			nullptr,
+			nullptr
+		);
+
+		// Slider thing
+		bool value_changed = false;
+		{
+			float height = Elements::MainElementHeight / 4.f; // The height of the middle bar
+			float gwidth = style.GrabMinSize;
+			float space = (Elements::MainElementHeight - height * 2) / 2.f;
+
+			ImRect grab_bb;
+			value_changed = SliderBehavior(slider_bb, id, DATA_TYPE, val, &v_min, &v_max, format, 0, &grab_bb);
+			if (value_changed)
+				MarkItemEdited(id);
+
+			draw->AddRectFilled(
+				slider_bb.Min + ImVec2(3, space),
+				slider_bb.Max - ImVec2(3, space),
+				Elements::SecondaryColor,
+				Elements::Rounding
+			);
+
+			// Grab
+			draw->AddRectFilled(
+				grab_bb.Min,
+				ImVec2(grab_bb.Min.x + gwidth, grab_bb.Max.y),
+				Elements::PrimaryColor,
+				Elements::Rounding
+			);
+			if (g.ActiveId == id)
+				draw->AddRectFilled(
+					grab_bb.Min,
+					ImVec2(grab_bb.Min.x + gwidth, grab_bb.Max.y),
+					Elements::HeldColor,
+					Elements::Rounding
+				);
+			else if (hovered)
+				draw->AddRectFilled(
+					grab_bb.Min,
+					ImVec2(grab_bb.Min.x + gwidth, grab_bb.Max.y),
+					Elements::HoveredColor,
+					Elements::Rounding
+				);
+		}
+
+		char val_buf[64];
+		const char* val_buf_end = val_buf + DataTypeFormatString(val_buf, IM_ARRAYSIZE(val_buf), DATA_TYPE, val, format);
+		RenderTextClipped(
+			val_bb.Min - ImVec2(0, 2),
+			val_bb.Max - ImVec2(0, 2),
+			val_buf,
+			val_buf_end,
+			nullptr,
+			ImVec2(0.5f, 0.5f)
+		);
+
+		return value_changed;
 	}
 	bool CColorPicker(const char* text, float* rgba) {
 		return false;
+	}
+	bool CComboBox(const char* text, int* selected, const char** options, int num_options, bool is_multi, bool* is_open) {
+		using namespace imelems;
+
+		ImGuiWindow* wnd = GetCurrentWindow();
+		if (wnd->SkipItems)
+			return false;
+
+		ImGuiContext& g = *GImGui;
+		const ImGuiStyle& style = g.Style;
+		const ImGuiID id = wnd->GetID(text);
+		const ImVec2 label_size = CalcTextSize(text, 0, true);
+		ImDrawList* draw = wnd->DrawList;
+
+		ImVec2 pos = wnd->DC.CursorPos;
+		ImVec2 cSize = GetContentRegionMax();
+		ImVec2 size = ImVec2(cSize.x - Elements::PaddingSides * 2, Elements::MainElementHeight + Elements::InnerPadding + UIFonts_Text_Size);
+
+		const ImRect bb(pos, pos + size);
+		const ImRect strip_bb(ImVec2(bb.Min.x, bb.Min.y + UIFonts_Text_Size + Elements::InnerPadding), bb.Max);
+
+		ItemSize(size);
+		if (!ItemAdd(bb, id, nullptr, ImGuiItemFlags_AllowOverlap))
+			return false;
+
+		bool hovered, held;
+		bool clicked = ButtonBehavior(strip_bb, id, &hovered, &held, ImGuiButtonFlags_AllowOverlap);
+
+		// Combo header text
+		RenderTextClipped(
+			bb.Min - ImVec2(0, 2),
+			ImVec2(bb.Max.x, bb.Min.y + UIFonts_Text_Size + Elements::InnerPadding - 2),
+			text,
+			nullptr,
+			nullptr
+		);
+
+		if (clicked) 
+			*is_open = !*is_open;
+
+		// Combo strip
+		{
+			draw->AddRectFilled(
+				strip_bb.Min,
+				strip_bb.Max,
+				Elements::PrimaryColor,
+				Elements::Rounding
+			);
+			draw->AddRect(
+				strip_bb.Min,
+				strip_bb.Max,
+				Elements::BorderColor,
+				Elements::Rounding,
+				0,
+				Elements::BorderThickness
+			);
+
+			float openerWidth = Elements::InnerPadding * 2 + UIFonts_Text_Size;
+			const ImRect opener_bb(ImVec2(strip_bb.Max.x - openerWidth, strip_bb.Min.y), strip_bb.Max);
+			draw->AddLine(
+				opener_bb.Min,
+				opener_bb.Max - ImVec2(openerWidth, 0),
+				Elements::BorderColor,
+				Elements::BorderThickness
+			);
+
+			// Draw the arrow
+			{
+				float radius = UIFonts_Text_Size / 2.f;
+				float offset = (opener_bb.GetHeight() - radius) / 2.f;
+				ImVec2 center = opener_bb.Min + (opener_bb.GetSize() - ImVec2(openerWidth, opener_bb.GetHeight()) / 2.f) + ImVec2(0, offset);
+
+				if (*is_open) {
+					draw->AddLine(
+						ImVec2(center.x - radius, center.y),
+						ImVec2(center.x, center.y - radius),
+						Window::TextColor,
+						2
+					);
+					draw->AddLine(
+						ImVec2(center.x + radius, center.y),
+						ImVec2(center.x, center.y - radius),
+						Window::TextColor,
+						2
+					);
+				}
+				else {
+					draw->AddLine(
+						ImVec2(center.x - radius, center.y - radius),
+						ImVec2(center.x, center.y),
+						Window::TextColor,
+						2
+					);
+					draw->AddLine(
+						ImVec2(center.x + radius, center.y - radius),
+						ImVec2(center.x, center.y),
+						Window::TextColor,
+						2
+					);
+				}
+			}
+			// Draw the selected values (this shit could have been much better, but currently idk how to make it better)
+			{
+				const ImRect strip2_bb(strip_bb.Min + ImVec2(Elements::PaddingSides, 0), strip_bb.Max - ImVec2(openerWidth, 0));
+
+				bool nothingSelected = true;
+				if (!is_multi) {
+					int s_val = *selected;
+					if (s_val != -1) {
+						nothingSelected = false;
+
+						RenderTextClipped(
+							strip2_bb.Min - ImVec2(0, 2),
+							strip2_bb.Max - ImVec2(0, 2),
+							options[s_val],
+							nullptr,
+							nullptr,
+							ImVec2(0, 0.5f)
+						);
+					}
+				}
+				else {
+					std::vector<char> strip_text;
+
+					for (int i = 0; i < num_options; i++)
+						if (selected[i] != -1) {
+							for (size_t len = 0; len < strlen(options[i]); len++)
+								strip_text.push_back(options[i][len]);
+							strip_text.push_back(',');
+							strip_text.push_back(' ');
+						}
+
+					if (strip_text.size() != 0) {
+						nothingSelected = false;
+
+						char* text = strip_text.data();
+						RenderTextClipped(
+							strip2_bb.Min - ImVec2(0, 2),
+							strip2_bb.Max - ImVec2(0, 2),
+							text,
+							text + (strip_text.size() - 2),
+							nullptr,
+							ImVec2(0, 0.5f)
+						);
+					}
+				}
+
+				if (nothingSelected)
+					RenderTextClipped(
+						strip2_bb.Min - ImVec2(0, 2),
+						strip2_bb.Max - ImVec2(0, 2),
+						"Nothing",
+						nullptr,
+						nullptr,
+						ImVec2(0, 0.5f)
+					);
+			}
+
+			if (held || clicked)
+				draw->AddRectFilled(
+					strip_bb.Min,
+					strip_bb.Max,
+					Elements::HeldColor,
+					Elements::Rounding
+				);
+			else if (hovered)
+				draw->AddRectFilled(
+					strip_bb.Min,
+					strip_bb.Max,
+					Elements::HoveredColor,
+					Elements::Rounding
+				);
+		}
+
+		if (!*is_open)
+			return false;
+
+		SetNextWindowPos(ImVec2(bb.Min.x, bb.Max.y + 1));
+		SetNextWindowSize(ImVec2(bb.GetWidth(), min(num_options, Elements::ComboBoxHeight) * UIFonts_Text_Size));
+		Begin("##ComboPopup", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar);
+		{
+			ImGuiWindow* cwnd = GetCurrentWindow();
+			ImDrawList* cdraw = cwnd->DrawList;
+			ImVec2 oPos = cwnd->DC.CursorPos;
+
+			if (!held && !clicked)
+				*is_open = IsWindowFocused();
+
+			if (*is_open) {
+				ImVec2 maxCont = GetContentRegionMax();
+				ImVec2 oSize = ImVec2(maxCont.x, UIFonts_Text_Size);
+
+				for (int i = 0; i < num_options; i++) {
+					ImGuiID oid = cwnd->GetID(i);
+
+					const ImRect obb(oPos, oPos + oSize);
+					ItemSize(oSize);
+					if (!ItemAdd(obb, oid, nullptr, ImGuiItemFlags_AllowOverlap)) {
+						oPos += ImVec2(0, oSize.y);
+						continue;
+					}
+
+					bool ohovered, oheld;
+					bool oclicked = ButtonBehavior(obb, oid, &ohovered, &oheld, ImGuiButtonFlags_AllowOverlap);
+					if (oclicked)
+						if (!is_multi)
+							*selected = (*selected == i ? -1 : i);
+						else selected[i] = (selected[i] != -1 ? -1 : i);
+					
+					bool isSelected; // This is here it will be needed in the future, it will get optimized anyway
+					if (!is_multi)
+						isSelected = (*selected != -1 ? *selected == i : false);
+					else isSelected = selected[i] != -1;
+
+					if (isSelected)
+						PushStyleColor(ImGuiCol_Text, Elements::SecondaryColor.Value);
+					RenderTextClipped(
+						obb.Min - ImVec2(-Elements::PaddingSides, 2),
+						obb.Max - ImVec2(-Elements::PaddingSides, 2),
+						options[i],
+						nullptr,
+						nullptr,
+						ImVec2(0, 0.5f)
+					);
+					if (isSelected)
+						PopStyleColor();
+
+					if (oheld || oclicked)
+						cdraw->AddRectFilled(
+							obb.Min,
+							obb.Max,
+							Elements::HeldColor,
+							Elements::Rounding
+						);
+					else if (ohovered)
+						cdraw->AddRectFilled(
+							obb.Min,
+							obb.Max,
+							Elements::HoveredColor,
+							Elements::Rounding
+						);
+
+					oPos += ImVec2(0, oSize.y);
+				}
+			}
+		}
+		End();
+	}
+	void CKeybind(const char* text, Keybind* keybind) {
+		using namespace imelems;
+
+		ImGuiWindow* wnd = GetCurrentWindow();
+		if (wnd->SkipItems)
+			return;
+
+		ImGuiContext& g = *GImGui;
+		const ImGuiStyle& style = g.Style;
+		const ImGuiID id = wnd->GetID(text);
+		const ImVec2 label_size = CalcTextSize(text, 0, true);
+		ImDrawList* draw = wnd->DrawList;
+
+		ImVec2 pos = wnd->DC.CursorPos;
+		ImVec2 cSize = GetContentRegionMax();
+		ImVec2 size = ImVec2(cSize.x - Elements::PaddingSides * 2, Elements::MainElementHeight);
+
+		const ImRect bb(pos, pos + size);
+		ItemSize(size);
+		if (!ItemAdd(bb, id, nullptr, ImGuiItemFlags_AllowOverlap))
+			return;
+
+		draw->AddRectFilled(
+			bb.Min,
+			bb.Max,
+			IM_COL32(0, 0, 0, 255)
+		);
+
+		RenderTextClipped(
+			bb.Min - ImVec2(0, 2),
+			bb.Max - ImVec2(0, 2),
+			text,
+			nullptr,
+			&label_size,
+			ImVec2(0, 0.5f)
+		);
+
+		char* key_name;
+		if (keybind->Rebinding)
+			key_name = (char*)"...";
+		else {
+			if (!key2name.contains(keybind->Keycode)) {
+				if (!convertKeycode)
+					key_name = (char*)"Unknown";
+				else {
+					wchar_t* result = convertKeycode(keybind->Keycode);
+					ConvertStrToUTF8(&key_name, result);
+					GlobalFree((void*)result);
+
+					key2name[keybind->Keycode] = key_name;
+				}
+			}
+			else key_name = key2name[keybind->Keycode];
+		}
+
+		ImVec2 keySize = CalcTextSize(key_name);
+		const ImRect keybox_bb(ImVec2(bb.Max.x - (keySize.x + Elements::InnerPadding * 2), bb.Min.y), bb.Max);
+		
+		bool hovered, held;
+		bool clicked = ButtonBehavior(keybox_bb, id, &hovered, &held, ImGuiButtonFlags_AllowOverlap);
+		if (clicked)
+			keybind->Rebinding = true;
+
+		draw->AddRectFilled(
+			keybox_bb.Min,
+			keybox_bb.Max,
+			Elements::PrimaryColor,
+			Elements::Rounding
+		);
+		draw->AddRect(
+			keybox_bb.Min,
+			keybox_bb.Max,
+			Elements::BorderColor,
+			Elements::Rounding,
+			0,
+			Elements::BorderThickness
+		);
+		RenderTextClipped(
+			keybox_bb.Min - ImVec2(0, 2),
+			keybox_bb.Max - ImVec2(0, 2),
+			key_name,
+			nullptr,
+			&keySize,
+			ImVec2(0.5f, 0.5f)
+		);
+
+		if (held || clicked)
+			draw->AddRectFilled(
+				keybox_bb.Min,
+				keybox_bb.Max,
+				Elements::HeldColor,
+				Elements::Rounding
+			);
+		else if (hovered)
+			draw->AddRectFilled(
+				keybox_bb.Min,
+				keybox_bb.Max,
+				Elements::HoveredColor,
+				Elements::Rounding
+			);
 	}
 }
 
@@ -485,10 +1063,19 @@ void MenuFunc(Render, ()) {
 							case UIBuilder::ElementType_Colorpicker:
 								ImGui::CColorPicker(elem->text, (float*)elem->target);
 								break;
+							case UIBuilder::ElementType_Combo:
+								if (ImGui::CComboBox(elem->text, (int*)elem->target, elem->options, elem->num_options, elem->is_multi, &elem->is_open) && elem->callback)
+									((fComboBoxCallback)elem->callback)();
+								break;
+							case UIBuilder::ElementType_Keybind:
+								ImGui::CKeybind(elem->text, (Keybind*)elem->target);
+								break;
 						}
 
 						*bPos += ImVec2(0, Elements::PaddingBetweenElems);
 					}
+
+					ImGui::Dummy(ImVec2(0, 0)); // Just so imgui adds the bottom padding
 				}
 				ImGui::EndChild();
 
@@ -506,6 +1093,11 @@ void MenuFunc(Destroy, ()) {
 		menuIcon->Release();
 		menuIcon = nullptr;
 	}
+
+	for (keyMap::iterator it = key2name.begin(); it != key2name.end(); it++) {
+		free(it->second);
+	}
+	key2name.clear();
 }
 
 void MenuFunc(SetIcon, (ID3D11Resource* icon)) {
@@ -518,4 +1110,7 @@ void MenuFunc(SetIcon, (ID3D11Resource* icon)) {
 }
 void MenuFunc(SetKeybind, (Keybind* key)) {
 	menuKey = key;
+}
+void MenuFunc(SetKeybindConverter, (void* func)) {
+	convertKeycode = (fConvertKeyCode)func;
 }

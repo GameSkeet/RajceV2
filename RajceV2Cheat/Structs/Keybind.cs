@@ -21,8 +21,11 @@ namespace RajceV2Cheat.Structs
         public bool ShowInList;
         [MarshalAs(UnmanagedType.Bool)]
         public bool State;
+        [MarshalAs(UnmanagedType.Bool)]
+        public bool Rebinding;
 
+        // This should only be set by the frontend
         [MarshalAs(UnmanagedType.U4)]
-        public readonly uint ID; // This should only be set by the frontend
+        public readonly uint ID;
     }
 }
