@@ -386,8 +386,8 @@ namespace ImGui {
 
 		return value_changed;
 	}
-	bool CColorPicker(const char* text, float* rgba) {
-		return false;
+	void CColorPicker(const char* text, float* rgba) {
+		//TODO
 	}
 	bool CComboBox(const char* text, int* selected, const char** options, int num_options, bool is_multi, bool* is_open) {
 		using namespace imelems;
@@ -636,7 +636,7 @@ namespace ImGui {
 		}
 		End();
 	}
-	void CKeybind(const char* text, Keybind* keybind) {
+	void CKeybind(const char* text, Keybind* keybind, bool* is_open) {
 		using namespace imelems;
 
 		ImGuiWindow* wnd = GetCurrentWindow();
@@ -645,6 +645,7 @@ namespace ImGui {
 
 		ImGuiContext& g = *GImGui;
 		const ImGuiStyle& style = g.Style;
+
 		const ImGuiID id = wnd->GetID(text);
 		const ImVec2 label_size = CalcTextSize(text, 0, true);
 		ImDrawList* draw = wnd->DrawList;
@@ -658,12 +659,6 @@ namespace ImGui {
 		if (!ItemAdd(bb, id, nullptr, ImGuiItemFlags_AllowOverlap))
 			return;
 
-		draw->AddRectFilled(
-			bb.Min,
-			bb.Max,
-			IM_COL32(0, 0, 0, 255)
-		);
-
 		RenderTextClipped(
 			bb.Min - ImVec2(0, 2),
 			bb.Max - ImVec2(0, 2),
@@ -674,30 +669,28 @@ namespace ImGui {
 		);
 
 		char* key_name;
-		if (keybind->Rebinding)
-			key_name = (char*)"...";
-		else {
-			if (!key2name.contains(keybind->Keycode)) {
-				if (!convertKeycode)
-					key_name = (char*)"Unknown";
-				else {
-					wchar_t* result = convertKeycode(keybind->Keycode);
-					ConvertStrToUTF8(&key_name, result);
-					GlobalFree((void*)result);
+		if (!key2name.contains(keybind->Keycode)) {
+			if (!convertKeycode)
+				key_name = (char*)"Unknown";
+			else {
+				wchar_t* result = convertKeycode(keybind->Keycode);
+				ConvertStrToUTF8(&key_name, result);
+				GlobalFree((void*)result);
 
-					key2name[keybind->Keycode] = key_name;
-				}
+				key2name[keybind->Keycode] = key_name;
 			}
-			else key_name = key2name[keybind->Keycode];
 		}
+		else key_name = key2name[keybind->Keycode];
 
 		ImVec2 keySize = CalcTextSize(key_name);
 		const ImRect keybox_bb(ImVec2(bb.Max.x - (keySize.x + Elements::InnerPadding * 2), bb.Min.y), bb.Max);
 		
 		bool hovered, held;
-		bool clicked = ButtonBehavior(keybox_bb, id, &hovered, &held, ImGuiButtonFlags_AllowOverlap);
-		if (clicked)
+		bool clicked = ButtonBehavior(keybox_bb, id, &hovered, &held, ImGuiButtonFlags_AllowOverlap | ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+		if (clicked && IsMouseReleased(ImGuiMouseButton_Left))
 			keybind->Rebinding = true;
+		if (clicked && IsMouseReleased(ImGuiMouseButton_Right))
+			*is_open = true;
 
 		draw->AddRectFilled(
 			keybox_bb.Min,
@@ -716,9 +709,9 @@ namespace ImGui {
 		RenderTextClipped(
 			keybox_bb.Min - ImVec2(0, 2),
 			keybox_bb.Max - ImVec2(0, 2),
-			key_name,
+			keybind->Rebinding ? "..." : key_name,
 			nullptr,
-			&keySize,
+			nullptr, // Could use the keySize if the rebind wasn't used
 			ImVec2(0.5f, 0.5f)
 		);
 
@@ -736,6 +729,86 @@ namespace ImGui {
 				Elements::HoveredColor,
 				Elements::Rounding
 			);
+
+		if (!*is_open)
+			return;
+
+		ImVec2 popupSize = ImVec2(CalcTextSize("Reset key").x + Elements::PaddingSides * 2, 4 * UIFonts_Text_Size); // Hard-coded 4 cause there will always be 4 elements
+		if (keybox_bb.GetWidth() > popupSize.x)
+			SetNextWindowPos(ImVec2(keybox_bb.Min.x, keybox_bb.Max.y + 1));
+		else SetNextWindowPos(ImVec2(keybox_bb.Max.x - popupSize.x, keybox_bb.Max.y + 1));
+
+		SetNextWindowSize(popupSize); 
+		Begin("##KeybindPopup", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar);
+		{
+			ImGuiWindow* cwnd = GetCurrentWindow();
+			ImDrawList* cdraw = cwnd->DrawList;
+			ImVec2 iPos = cwnd->DC.CursorPos;
+
+			if (!held && !clicked)
+				*is_open = IsWindowFocused();
+
+			// Idk why i named some txx and some ixx, am i just retarded?
+			if (*is_open) {
+				ImVec2 maxCont = GetContentRegionMax();
+				ImVec2 iSize = ImVec2(maxCont.x, UIFonts_Text_Size);
+				int currType = (int)keybind->Type; // Adding this just so no visual stuff happens
+
+				static const char* Types[4] = { "Hold", "Toggle", "Always", "Reset key" };
+				for (int i = 0; i < 4; i++) {
+					const char* type = Types[i];
+					ImGuiID tid = cwnd->GetID(type);
+
+					const ImRect tbb(iPos, iPos + iSize);
+					ItemSize(iSize);
+					if (!ItemAdd(tbb, tid, nullptr, ImGuiItemFlags_AllowOverlap)) {
+						iPos += ImVec2(0, iSize.y);
+						continue;
+					}
+
+					bool ihovered, iheld;
+					bool iclicked = ButtonBehavior(tbb, tid, &ihovered, &iheld, ImGuiButtonFlags_AllowOverlap);
+					if (iclicked) {
+						if (i == 3)
+							keybind->Keycode = 0;
+						else keybind->Type = (KeybindType)i;
+
+						*is_open = false;
+					}
+
+					if (currType == i)
+						PushStyleColor(ImGuiCol_Text, Elements::SecondaryColor.Value);
+					RenderTextClipped(
+						tbb.Min - ImVec2(-Elements::PaddingSides, 2),
+						tbb.Max - ImVec2(-Elements::PaddingSides, 2),
+						type,
+						nullptr,
+						nullptr,
+						ImVec2(0, 0.5f)
+					);
+					if (currType == i)
+						PopStyleColor();
+
+					if (iheld || iclicked)
+						cdraw->AddRectFilled(
+							tbb.Min,
+							tbb.Max,
+							Elements::HeldColor,
+							Elements::Rounding
+						);
+					else if (ihovered)
+						cdraw->AddRectFilled(
+							tbb.Min,
+							tbb.Max,
+							Elements::HoveredColor,
+							Elements::Rounding
+						);
+
+					iPos += ImVec2(0, iSize.y);
+				}
+			}
+		}
+		End();
 	}
 }
 
@@ -1068,7 +1141,7 @@ void MenuFunc(Render, ()) {
 									((fComboBoxCallback)elem->callback)();
 								break;
 							case UIBuilder::ElementType_Keybind:
-								ImGui::CKeybind(elem->text, (Keybind*)elem->target);
+								ImGui::CKeybind(elem->text, (Keybind*)elem->target, &elem->is_open);
 								break;
 						}
 
