@@ -17,7 +17,7 @@ namespace RajceV2Cheat.Tabs
         {
             int[] arr = new int[len];
             for (int i = 0; i < len; i++)
-                arr[i] = 1;
+                arr[i] = -1;
 
             return arr;
         }
