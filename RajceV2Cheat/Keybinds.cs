@@ -33,11 +33,6 @@ namespace RajceV2Cheat
             for (int i = 0; i < keybinds.Count; i++)
             {
                 Keybind* key = (Keybind*)keybinds[i].AddrOfPinnedObject();
-                if (key->Keycode == 0)
-                {
-                    key->State = false;
-                    continue;
-                }
                 if (key->Rebinding)
                 {
                     KeyCode k;
@@ -46,6 +41,11 @@ namespace RajceV2Cheat
 
                     key->Keycode = (int)k;
                     key->Rebinding = false;
+                }
+                if (key->Keycode == 0)
+                {
+                    key->State = false;
+                    continue;
                 }
 
                 switch (key->Type)
