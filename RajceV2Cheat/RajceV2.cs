@@ -1,7 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Runtime.InteropServices;
+
 using MelonLoader;
+
+using RajceV2Cheat.Features;
 
 namespace RajceV2Cheat
 {
@@ -25,17 +28,24 @@ namespace RajceV2Cheat
                 return;
             }
 
+            FeatureManager.Init();
             Menu.Init();
         }
 
         public override void OnUpdate()
         {
             Keybinds.OnUpdate();
+            FeatureManager.OnUpdate();
+        }
+        public override void OnGUI()
+        {
+            FeatureManager.OnGUI();
         }
 
         public override void OnDeinitializeMelon()
         {
             Menu.Destroy();
+            FeatureManager.Destroy();
 
             FrontendPipe.DestroyTransporter();
         }
