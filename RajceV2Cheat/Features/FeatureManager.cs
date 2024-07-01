@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 using RajceV2Cheat.Features.Misc;
+using RajceV2Cheat.Features.Combat;
 
 using UnityEngine.Networking;
 
@@ -31,8 +29,15 @@ namespace RajceV2Cheat.Features
 
         public static void Init()
         {
+            // Combat
+            AddFeature(new Aimbot());
+            AddFeature(new WeaponMods());
+
             // Misc
             AddFeature(new CursorFix());
+
+            /*foreach (KeyValuePair<Type, BaseFeature> kvp in Features)
+                RajceV2.Logger.Msg("Type: {0}, Name: {1}", kvp.Key.FullName, kvp.Value.Name);*/
         }
         public static void Destroy()
         {

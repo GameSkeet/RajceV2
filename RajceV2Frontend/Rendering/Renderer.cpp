@@ -136,7 +136,7 @@ HRESULT __stdcall hkResizeBuffers(IDXGISwapChain* swap, UINT buffCnt, UINT w, UI
 	using namespace RajceV2::Rendering;
 
 	format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
+	
 	if (d3d_rendertarget) {
 		d3d_context->OMSetRenderTargets(0, 0, 0);
 		d3d_rendertarget->Release();

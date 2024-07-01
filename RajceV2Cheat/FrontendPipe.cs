@@ -189,12 +189,18 @@ namespace RajceV2Cheat
 
             return (T)Marshal.GetDelegateForFunctionPointer(export, typeof(T));
         }
-        private static IntPtr GetFnPtr(Delegate d)
+        private static IntPtr GetFnPtr(Delegate d, string name = null)
         {
             if (d == null)
                 return IntPtr.Zero;
 
-            return Marshal.GetFunctionPointerForDelegate(d);
+            IntPtr ptr = Marshal.GetFunctionPointerForDelegate(d);
+            if (name != null)
+            {
+                RajceV2.Logger.Msg("FnAddr of {0}: 0x{1}", name, ptr.ToString("X8"));
+            }
+
+            return ptr;
         }
 
         public static bool InitTransporter()
@@ -290,20 +296,20 @@ namespace RajceV2Cheat
 
         public static void AddButton(string text, OnButtonClickCallback onClick = null)
         {
-            AddElement(ElementType.Button, Marshal.StringToHGlobalUni(text), (void*)0, GetFnPtr(onClick));
+            AddElement(ElementType.Button, Marshal.StringToHGlobalUni(text), (void*)0, GetFnPtr(onClick, text));
         }
         public static void AddCheckbox(string text, bool* target, OnCheckboxCallback onClick = null)
         {
-            AddElement(ElementType.Checkbox, Marshal.StringToHGlobalUni(text), target, GetFnPtr(onClick));
+            AddElement(ElementType.Checkbox, Marshal.StringToHGlobalUni(text), target, GetFnPtr(onClick, text));
         }
         public static void AddSliderInt(string text, int* target, int min, int max, OnSliderChanged onChanged = null)
         {
-            IntPtr elem = AddElement(ElementType.SliderInt, Marshal.StringToHGlobalUni(text), target, GetFnPtr(onChanged));
+            IntPtr elem = AddElement(ElementType.SliderInt, Marshal.StringToHGlobalUni(text), target, GetFnPtr(onChanged, text));
             SetElementMinMax(elem, min, max);
         }
         public static void AddSliderFloat(string text, float* target, float min, float max, OnSliderChanged onChanged = null)
         {
-            IntPtr elem = AddElement(ElementType.SliderFloat, Marshal.StringToHGlobalUni(text), target, GetFnPtr(onChanged));
+            IntPtr elem = AddElement(ElementType.SliderFloat, Marshal.StringToHGlobalUni(text), target, GetFnPtr(onChanged, text));
             SetElementMinMax(elem, min, max);
         }
         // WARNING: set default selected value to -1, if using multi set all of the values to -1, also multi array should be the same length as the options array
@@ -316,7 +322,7 @@ namespace RajceV2Cheat
             for (int i = 0; i < options.Length; i++)
                 hgoptions[i] = Marshal.StringToHGlobalUni(options[i]);
 
-            IntPtr elem = AddElement(ElementType.Combo, Marshal.StringToHGlobalUni(text), selected, GetFnPtr(onChanged));
+            IntPtr elem = AddElement(ElementType.Combo, Marshal.StringToHGlobalUni(text), selected, GetFnPtr(onChanged, text));
             setValues(elem, Marshal.UnsafeAddrOfPinnedArrayElement(hgoptions, 0), hgoptions.Length, isMulti);
         }
         public static void AddKeybind(string text, IntPtr keybind)

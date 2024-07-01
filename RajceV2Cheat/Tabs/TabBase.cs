@@ -25,6 +25,13 @@ namespace RajceV2Cheat.Tabs
         {
             return (T*)Marshal.UnsafeAddrOfPinnedArrayElement(arr, 0).ToPointer();
         }
+        protected unsafe T* ObjectToPtr<T>(ref T obj, string name)
+        {
+            GCHandle handle = GCHandle.Alloc(obj, GCHandleType.Pinned);
+            Handles.Add(name, handle);
+
+            return (T*)handle.AddrOfPinnedObject().ToPointer();
+        }
 
         protected abstract void AddSections();
 

@@ -108,10 +108,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Features\BaseFeature.cs" />
+    <Compile Include="Features\Combat\Aimbot.cs" />
+    <Compile Include="Features\Combat\WeaponMods.cs" />
     <Compile Include="Features\FeatureManager.cs" />
     <Compile Include="Features\Misc\CursorFix.cs" />
     <Compile Include="Keybinds.cs" />
     <Compile Include="Menu.cs" />
+    <Compile Include="Patches\WeaponManagerPatch.cs" />
     <Compile Include="RajceV2.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Structs\Keybind.cs" />

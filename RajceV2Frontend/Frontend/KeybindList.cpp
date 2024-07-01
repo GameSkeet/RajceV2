@@ -8,7 +8,7 @@ using namespace RajceV2::KeybindManager;
 #define PADDING_Y 5
 #define PADDING_BETWEEN_NAME_TYPE 10
 
-#define CheckEntry(entry) IsEntryValid(entry, false, true)
+#define CheckEntry(entry) IsEntryValid(entry, false, false)
 #define KListVar(name, defVal) RajceV2::KeybindList::##name = defVal
 #define KListFunc(name, args) RajceV2::KeybindList::##name##args
 
