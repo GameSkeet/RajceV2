@@ -18,11 +18,6 @@ namespace RajceV2Cheat.Features.Combat
         public bool NoRecoil = false;
         public bool InstantReload = false;
         public bool Fullauto = false;
-
-        public static void CallUpdateWpns()
-        {
-            Type t = typeof(WeaponMods);
-        }
         
         public void UpdateWeaponMods()
         {
